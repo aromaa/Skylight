@@ -1,0 +1,84 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace SkylightEmulator.Communication.Headers
+{
+    public class r63aOutgoing
+    {
+        public static readonly uint SendSessionParamenters = 257;
+        public static readonly uint SendNotif = 161;
+        public static readonly uint AuthenicationOK = 3;
+        public static readonly uint Fuserights = 2;
+        public static readonly uint AvaiblityStatus = 290;
+        public static readonly uint Logging = 517;
+        public static readonly uint HomeRoom = 455;
+        public static readonly uint FavouriteRooms = 458;
+        public static readonly uint SendUserInfo = 5;
+        public static readonly uint UpdateCredits = 6;
+        public static readonly uint UpdateActivityPoints = 438;
+        public static readonly uint SendClubMembership = 7;
+        public static readonly uint SoundSettings = 308;
+        public static readonly uint MessengerFriends = 12;
+        public static readonly uint FriendRequests = 314;
+        public static readonly uint MessengerSearchResult = 435;
+        public static readonly uint RequestFriendError = 260;
+        public static readonly uint NewFriendRequest = 132;
+        public static readonly uint MeesengerUpdate = 13;
+        public static readonly uint MessengerChatError = 261;
+        public static readonly uint MessengerChatMessage = 134;
+        public static readonly uint MessengerRoomInvite = 135;
+        public static readonly uint PublicRooms = 450;
+        public static readonly uint MyRooms = 451;
+        public static readonly uint CanCreateRoom = 512;
+        public static readonly uint FlatRoomCreated = 59;
+        public static readonly uint FlatCats = 221;
+        public static readonly uint BadgePoints = 443;
+        public static readonly uint EnterPrivateRoom = 19;
+        public static readonly uint LoadingRoomInfo = 69;
+        public static readonly uint SendFurniAliases = 297;
+        public static readonly uint Heightmap = 31;
+        public static readonly uint RelativeHeightmap = 470;
+        public static readonly uint PublicItems = 30;
+        public static readonly uint RoomOwner = 471;
+        public static readonly uint RoomData = 454;
+        public static readonly uint SetRoomUser = 28;
+        public static readonly uint UserStatues = 34;
+        public static readonly uint Say = 24;
+        public static readonly uint Shout = 26;
+        public static readonly uint LeaveRoom = 18;
+        public static readonly uint UserLeavedRoom = 29;
+        public static readonly uint RoomEvent = 370;
+        public static readonly uint FloorItems = 32;
+        public static readonly uint WallItems = 45;
+        public static readonly uint CatalogIndexes = 126;
+        public static readonly uint CatalogPage = 127;
+        public static readonly uint NoEnoughtCash = 68;
+        public static readonly uint BuyInfo = 67;
+        public static readonly uint InventoryUpdate = 101;
+        public static readonly uint InventoryItems = 140;
+        public static readonly uint NewItemAdded = 832;
+        public static readonly uint AddFloorItemToRoom = 93;
+        public static readonly uint RemoveItemFromHand = 99;
+        public static readonly uint RoomVIPSettings = 472;
+        public static readonly uint RoomRights = 42;
+        public static readonly uint IsRoomOwner = 47;
+        public static readonly uint AddWallItemToRoom = 83;
+        public static readonly uint RemoveFloorItemFromRoom = 94;
+        public static readonly uint RemoveWallItemFromRoom = 84;
+        public static readonly uint UpdateRoomWallItem = 85;
+        public static readonly uint UpdateRoomFloorItem = 88;
+        public static readonly uint RoomFloorItemMoved = 95;
+        public static readonly uint RoomSettings = 465;
+        public static readonly uint RoomSettingsOK = 467;
+        public static readonly uint RoomUpdateOK = 456;
+        public static readonly uint RoomThumbnailUpdated = 457;
+        public static readonly uint Navigator = 451;
+        public static readonly uint DoorBellNoAnswer = 131;
+        public static readonly uint RoomError = 33;
+        public static readonly uint Doorbell = 91;
+        public static readonly uint DoorBellAnswer = 41;
+    }
+}

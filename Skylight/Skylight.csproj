@@ -1,0 +1,185 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{C7148365-517F-4DD9-8DCE-EDC013497722}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>SkylightEmulator</RootNamespace>
+    <AssemblyName>Skylight</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="MySql.Data, Version=6.6.4.0, Culture=neutral, PublicKeyToken=c5687fc88969c44d, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\MySql.Data.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Communication\Headers\r63aIncoming.cs" />
+    <Compile Include="Communication\Headers\r63aOutgoing.cs" />
+    <Compile Include="Communication\IncomingPacket.cs" />
+    <Compile Include="Communication\Managers\r63aPacketManager.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\AcceptBuddyMessageEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\CanCreateRoomMessageEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\ChatMessageEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\CreateFlatMessageEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\DeclineBuddyMessageEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\EventMessageEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\FriendsListUpdateEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\GetBadgePointLimitsEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\GetBuddyRequestsMessageEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\GetCatalogIndexMessageEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\GetCatalogPageMessageEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\GetCreditsInfoEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\GetFurnitureAliasesMessageEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\GetGuestRoomMessageEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\GetOfficialRoomsMessageEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\GetRoomEntryDataMessageEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\GetRoomSettingsMessageEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\GetSessionParametersMessageEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\GetSoundSettingsEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\GetUserClubMembershipMessageEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\GetUserFlatCatsMessageEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\HabboSearchMessageEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\InfoRetrieveMessageEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\InitCryptoMessageEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\LetUserInMessageEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\MessengerInitMessageEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\MoveAvatarMessageEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\MoveObjectMessageEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\MoveWallItemMessageEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\MyRoomsSearchMessageEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\OpenFlatConnectionMessageEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\PickupObjectMessageEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\PlaceObjectMessageEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\PopularRoomsSearchMessageEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\PurchaseItemMessageEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\RemoveBuddyMessageEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\RequestBuddyMessageEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\RequestInventoryMessageEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\SaveRoomThumbnailMessageEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\SaveRoomSettingsMessageEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\SendMsgMessageEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\SendRoomInviteMessageEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\ShoutMessageEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\SSOTicketMessageEvent.cs" />
+    <Compile Include="Communication\Messages\Incoming\r63a\Handshake\UseFurnitureMessageEvent.cs" />
+    <Compile Include="Communication\PacketManager.cs" />
+    <Compile Include="Core\ConfigurationData.cs" />
+    <Compile Include="Core\Logging.cs" />
+    <Compile Include="Core\ServerConfiguration.cs" />
+    <Compile Include="Core\Skylight.cs" />
+    <Compile Include="HabboHotel\Catalog\CatalogItem.cs" />
+    <Compile Include="HabboHotel\Catalog\CatalogManager.cs" />
+    <Compile Include="HabboHotel\Catalog\CatalogPage.cs" />
+    <Compile Include="HabboHotel\Game.cs" />
+    <Compile Include="HabboHotel\GameClients\GameClient.cs" />
+    <Compile Include="HabboHotel\GameClients\GameClientManager.cs" />
+    <Compile Include="HabboHotel\Items\Interactors\FurniInteractor.cs" />
+    <Compile Include="HabboHotel\Items\Interactors\InteractorDefault.cs" />
+    <Compile Include="HabboHotel\Items\Item.cs" />
+    <Compile Include="HabboHotel\Items\ItemManager.cs" />
+    <Compile Include="HabboHotel\Items\WallCoordinate.cs" />
+    <Compile Include="HabboHotel\Navigator\NavigatorManager.cs" />
+    <Compile Include="HabboHotel\Navigator\PublicItem.cs" />
+    <Compile Include="HabboHotel\Navigator\PublicItemBannerType.cs" />
+    <Compile Include="HabboHotel\Navigator\PublicItemType.cs" />
+    <Compile Include="HabboHotel\Pathfinders\DreamPathfinder.cs" />
+    <Compile Include="HabboHotel\Pathfinders\Tile.cs" />
+    <Compile Include="HabboHotel\Pathfinders\WalkRotation.cs" />
+    <Compile Include="HabboHotel\Rooms\ModelItemState.cs" />
+    <Compile Include="HabboHotel\Rooms\ModelTileState.cs" />
+    <Compile Include="HabboHotel\Rooms\Room.cs" />
+    <Compile Include="HabboHotel\Rooms\RoomData.cs" />
+    <Compile Include="HabboHotel\Rooms\RoomGamemapManager.cs" />
+    <Compile Include="HabboHotel\Rooms\RoomIcon.cs" />
+    <Compile Include="HabboHotel\Rooms\RoomItem.cs" />
+    <Compile Include="HabboHotel\Rooms\RoomItemManager.cs" />
+    <Compile Include="HabboHotel\Rooms\RoomManager.cs" />
+    <Compile Include="HabboHotel\Rooms\RoomModel.cs" />
+    <Compile Include="HabboHotel\Rooms\RoomSession.cs" />
+    <Compile Include="HabboHotel\Rooms\RoomStateType.cs" />
+    <Compile Include="HabboHotel\Rooms\RoomTile.cs" />
+    <Compile Include="HabboHotel\Rooms\RoomUser.cs" />
+    <Compile Include="HabboHotel\Rooms\RoomUserManager.cs" />
+    <Compile Include="HabboHotel\Users\Authenicator.cs" />
+    <Compile Include="HabboHotel\Users\Habbo.cs" />
+    <Compile Include="HabboHotel\Users\Inventory\InventoryItem.cs" />
+    <Compile Include="HabboHotel\Users\Inventory\InventoryManager.cs" />
+    <Compile Include="HabboHotel\Users\Messenger\HabboMessenger.cs" />
+    <Compile Include="HabboHotel\Users\Messenger\MessengerFriend.cs" />
+    <Compile Include="HabboHotel\Users\Messenger\MessengerRequest.cs" />
+    <Compile Include="HabboHotel\Users\UserDataFactory.cs" />
+    <Compile Include="HabboHotel\Users\UserSettings.cs" />
+    <Compile Include="HabboHotel\Users\UserStats.cs" />
+    <Compile Include="Messages\ClientMessage.cs" />
+    <Compile Include="Messages\r63a\r63aClientMessage.cs" />
+    <Compile Include="Messages\r63a\r63aServerMessage.cs" />
+    <Compile Include="Messages\ServerMessage.cs" />
+    <Compile Include="Net\SocketsConnection.cs" />
+    <Compile Include="Net\SocketsListener.cs" />
+    <Compile Include="Net\SocketsManager.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Storage\Database.cs" />
+    <Compile Include="Storage\DatabaseClient.cs" />
+    <Compile Include="Storage\DatabaseException.cs" />
+    <Compile Include="Storage\DatabaseManager.cs" />
+    <Compile Include="Storage\DatabaseServer.cs" />
+    <Compile Include="Utilies\AffectedTile.cs" />
+    <Compile Include="Utilies\Base64Encoding.cs" />
+    <Compile Include="Utilies\BasicUtilies.cs" />
+    <Compile Include="Utilies\CrossdomainPolicy.cs" />
+    <Compile Include="Utilies\ItemUtilies.cs" />
+    <Compile Include="Utilies\KeyValuePair.cs" />
+    <Compile Include="Utilies\Revision.cs" />
+    <Compile Include="Utilies\TextUtilies.cs" />
+    <Compile Include="Utilies\TimeUtilies.cs" />
+    <Compile Include="Utilies\WireEncoding.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Communication\Messages\Outgoing\r63a\" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
