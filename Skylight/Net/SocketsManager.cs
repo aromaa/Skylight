@@ -1,11 +1,14 @@
 ﻿using SkylightEmulator.Core;
+using SkylightEmulator.Utilies;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.Caching;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace SkylightEmulator.Net
@@ -13,69 +16,95 @@ namespace SkylightEmulator.Net
     public class SocketsManager
     {
         private ConcurrentDictionary<long, SocketsConnection> Connections;
-        private SocketsListener SocketsListener;
-
-        private object LOCK = new object();
+        private List<SocketsListener> Listeners;
+        
         private int NextID = 0;
 
         public SocketsManager(string ip, int port, int connectionLimit)
         {
             this.Connections = new ConcurrentDictionary<long, SocketsConnection>();
-            this.SocketsListener = new SocketsListener(ip, port, this);
+            this.Listeners = new List<SocketsListener>() { new SocketsListener(this, ip, port, Revision.None, Crypto.BOTH) };
+        }
+
+        public void AddListener(SocketsListener listener)
+        {
+            this.Listeners.Add(listener);
+
+            listener.Start();
         }
 
         public long GetNextID()
         {
-            lock (this.LOCK)
+            return Interlocked.Increment(ref this.NextID);
+        }
+
+        public void Start()
+        {
+            if (this.Listeners != null)
             {
-                return this.NextID++;
+                foreach (SocketsListener listener in this.Listeners)
+                {
+                    listener.Start();
+                }
             }
         }
 
         public void Stop()
         {
-            foreach(SocketsConnection connection in this.Connections.Values)
+            if (this.Listeners != null)
             {
-                if (connection != null)
+                foreach(SocketsListener listener in this.Listeners)
                 {
-                    connection.Dispose();
+                    listener.Stop();
                 }
             }
 
-            this.SocketsListener.Stop();
-            this.SocketsListener = null;
-        }
-
-        public void Start()
-        {
-            this.SocketsListener.Start();
-        }
-
-        public void Connection(Socket socket, EndPoint ip)
-        {
-            long id = this.GetNextID();
-            SocketsConnection connection = new SocketsConnection(id, socket, ip);
-            if (this.Connections.TryAdd(id, connection))
+            if (this.Connections != null)
             {
-                Skylight.GetGame().GetGameClientManager().Connection(connection);
-
-                if (Skylight.GetConfig()["emu.messages.connections"] == "1")
+                foreach (SocketsConnection connection in this.Connections.Values)
                 {
-                    Logging.WriteLine(">> Connection [" + id + "] from [" + connection.GetIP() + "]");
+                    if (connection != null)
+                    {
+                        connection.Disconnect("Listener shutdown");
+                    }
+                }
+            }
+        }
+
+        public void Connection(Socket socket, EndPoint ip, Revision revision, Crypto crypto)
+        {
+            long id = this.GetNextID(); //every socket have their own unique id
+            SocketsConnection connection = new SocketsConnection(id, socket, ip); //for easy to use
+            if (AntiDDoSManager.OnConnection(connection)) //not blocked
+            {
+                if (this.Connections.TryAdd(id, connection))
+                {
+                    Skylight.GetGame().GetGameClientManager().Connection(connection, revision, crypto);
+
+                    if (Skylight.GetConfig()["emu.messages.connections"] == "1")
+                    {
+                        Logging.WriteLine(">> Connection [" + id + "] from [" + connection.GetIP() + "]");
+                    }
+                }
+                else
+                {
+                    connection.Disconnect("Connection TryAdd failed");
                 }
             }
             else
             {
-
+                connection.Disconnect("Temp blocked IP");
             }
         }
 
-        public void Disconnection(SocketsConnection connection)
+        public void Disconnection(long id)
         {
-            Skylight.GetGame().GetGameClientManager().Disconnection(connection);
-
-            SocketsConnection connection2;
-            this.Connections.TryRemove(connection.GetID(), out connection2);
+            SocketsConnection connection;
+            if (this.Connections.TryRemove(id, out connection))
+            {
+                Skylight.GetGame().GetGameClientManager().Disconnection(id);
+                AntiDDoSManager.OnDisconnect(connection);
+            }
         }
     }
 }

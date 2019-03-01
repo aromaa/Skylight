@@ -17,7 +17,7 @@ namespace SkylightEmulator.Communication.Messages.Incoming.r63a.Handshake
             CatalogPage page = Skylight.GetGame().GetCatalogManager().GetCatalogPage(message.PopWiredInt32());
             if (page != null && page.Visible && page.Enabled && page.MinRank <= session.GetHabbo().Rank)
             {
-                session.SendMessage(page.PageData);
+                session.SendData(page.GetBytes(session.Revision));
             }
         }
     }

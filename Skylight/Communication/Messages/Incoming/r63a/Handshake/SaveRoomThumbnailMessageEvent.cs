@@ -19,8 +19,8 @@ namespace SkylightEmulator.Communication.Messages.Incoming.r63a.Handshake
         {
             if (session != null && session.GetHabbo() != null && session.GetHabbo().GetRoomSession() != null)
             {
-                Room room = Skylight.GetGame().GetRoomManager().GetRoom(session.GetHabbo().GetRoomSession().CurrentRoomID);
-                if (room != null && room.IsOwner(session))
+                Room room = Skylight.GetGame().GetRoomManager().TryGetRoom(session.GetHabbo().GetRoomSession().CurrentRoomID);
+                if (room != null && room.HaveOwnerRights(session))
                 {
                     uint roomId = message.PopWiredUInt();
 
@@ -57,24 +57,24 @@ namespace SkylightEmulator.Communication.Messages.Incoming.r63a.Handshake
 
                         room.RoomData.RoomIcon = roomIcon;
 
-                        ServerMessage roomThumbnailUpdated = BasicUtilies.GetRevisionServerMessage(Skylight.Revision);
+                        ServerMessage roomThumbnailUpdated = BasicUtilies.GetRevisionServerMessage(Revision.RELEASE63_35255_34886_201108111108);
                         roomThumbnailUpdated.Init(r63aOutgoing.RoomThumbnailUpdated);
                         roomThumbnailUpdated.AppendUInt(room.ID);
                         roomThumbnailUpdated.AppendUInt(room.ID);
-                        room.SendToAll(roomThumbnailUpdated, null);
+                        room.SendToAll(roomThumbnailUpdated);
 
-                        ServerMessage roomUpdateOK = BasicUtilies.GetRevisionServerMessage(Skylight.Revision);
+                        ServerMessage roomUpdateOK = BasicUtilies.GetRevisionServerMessage(Revision.RELEASE63_35255_34886_201108111108);
                         roomUpdateOK.Init(r63aOutgoing.RoomUpdateOK);
                         roomUpdateOK.AppendUInt(room.ID);
-                        room.SendToAll(roomUpdateOK, null);
+                        room.SendToAll(roomUpdateOK);
 
-                        ServerMessage roomData = BasicUtilies.GetRevisionServerMessage(Skylight.Revision);
+                        ServerMessage roomData = BasicUtilies.GetRevisionServerMessage(Revision.RELEASE63_35255_34886_201108111108);
                         roomData.Init(r63aOutgoing.RoomData);
                         roomData.AppendBoolean(false); //entered room
                         room.RoomData.Serialize(roomData, false);
                         roomData.AppendBoolean(false); //forward
-                        roomData.AppendBoolean(false); //is staff pick
-                        room.SendToAll(roomData, null);
+                        roomData.AppendBoolean(room.RoomData.IsStaffPick); //is staff pick
+                        room.SendToAll(roomData);
                     }
                 }
             }

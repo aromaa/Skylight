@@ -15,7 +15,7 @@ namespace SkylightEmulator.Communication.Messages.Incoming.r63a.Handshake
         {
             if (session != null && session.GetHabbo() != null)
             {
-                session.SendMessage(Skylight.GetGame().GetNavigatorManager().GetFlatCats(session.GetHabbo().Rank));
+                session.SendMessage(Skylight.GetGame().GetNavigatorManager().GetFlatCatsMessage(session));
             }
         }
     }

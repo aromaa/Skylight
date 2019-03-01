@@ -1,4 +1,5 @@
-﻿using SkylightEmulator.HabboHotel.GameClients;
+﻿using SkylightEmulator.Communication.Messages.Incoming.Handlers.Messenger;
+using SkylightEmulator.HabboHotel.GameClients;
 using SkylightEmulator.HabboHotel.Users.Messenger;
 using SkylightEmulator.Messages;
 using System;
@@ -9,32 +10,17 @@ using System.Threading.Tasks;
 
 namespace SkylightEmulator.Communication.Messages.Incoming.r63a.Handshake
 {
-    class AcceptBuddyMessageEvent : IncomingPacket
+    class AcceptBuddyMessageEvent : MessengerAcceptFriendRequestEventHandler
     {
-        public void Handle(GameClient session, ClientMessage message)
+        public override void Handle(GameClient session, ClientMessage message)
         {
-            if (session != null && session.GetHabbo() != null && session.GetHabbo().GetMessenger() != null)
+            this.FriendRequests = new uint[message.PopWiredInt32()];
+            for (int i = 0; i < this.FriendRequests.Length; i++)
             {
-                int amount = message.PopWiredInt32();
-                for (int i = 0; i < amount; i++)
-                {
-                    uint userId = message.PopWiredUInt();
-                    MessengerRequest request = session.GetHabbo().GetMessenger().GetFriendRequest(userId);
-                    if (request != null)
-                    {
-                        if (request.ToID != session.GetHabbo().ID)
-                        {
-                            continue;
-                        }
-
-                        if (!session.GetHabbo().GetMessenger().IsFriend(request.FromID))
-                        {
-                            session.GetHabbo().GetMessenger().AcceptFriend(request.FromID);
-                        }
-                        session.GetHabbo().GetMessenger().RemoveFriendRequest(request.FromID);
-                    }
-                }
+                this.FriendRequests[i] = message.PopWiredUInt();
             }
+
+            base.Handle(session, message);
         }
     }
 }

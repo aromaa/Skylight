@@ -18,13 +18,13 @@ namespace SkylightEmulator.Communication.Messages.Incoming.r63a.Handshake
             {
                 if (session != null && session.GetHabbo() != null && session.GetHabbo().GetRoomSession() != null)
                 {
-                    Room room = Skylight.GetGame().GetRoomManager().GetRoom(session.GetHabbo().GetRoomSession().CurrentRoomID);
+                    Room room = Skylight.GetGame().GetRoomManager().TryGetRoom(session.GetHabbo().GetRoomSession().CurrentRoomID);
                     if (room != null)
                     {
-                        RoomItem item = room.RoomItemManager.GetRoomItem(message.PopWiredUInt());
+                        RoomItem item = room.RoomItemManager.TryGetRoomItem(message.PopWiredUInt());
                         if (item != null)
                         {
-                            item.GetFurniInteractor().OnUse(session, item, message.PopWiredInt32(), room.HaveRights(session));
+                            item.OnUse(session, item, message.PopWiredInt32(), room.GaveRoomRights(session));
                         }
                     }
                 }

@@ -2,6 +2,7 @@
 using SkylightEmulator.HabboHotel.Users;
 using SkylightEmulator.Net;
 using SkylightEmulator.Storage;
+using SkylightEmulator.Utilies;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -15,28 +16,38 @@ namespace SkylightEmulator.HabboHotel.GameClients
     {
         private Dictionary<long, GameClient> Clients;
         private Dictionary<uint, string> CachedUsernames;
+        private Dictionary<string, uint> CachedIDs;
 
         public GameClientManager()
         {
             this.Clients = new Dictionary<long, GameClient>();
             this.CachedUsernames = new Dictionary<uint, string>();
+            this.CachedIDs = new Dictionary<string, uint>();
         }
 
-        public void Connection(SocketsConnection connection)
+        public int OnlineCount
         {
-            GameClient gameClient = new GameClient(connection.GetID(), connection);
+            get
+            {
+                return this.Clients.Values.Count(c => c != null && c.GetHabbo() != null);
+            }
+        }
+
+        public void Connection(SocketsConnection connection, Revision revision, Crypto crypto)
+        {
+            GameClient gameClient = new GameClient(connection.GetID(), connection, revision, crypto);
             this.Clients.Add(connection.GetID(), gameClient);
             gameClient.Start();
         }
 
-        public void Disconnection(SocketsConnection connection)
+        public void Disconnection(long id)
         {
-            GameClient gameClient = this.Clients[connection.GetID()];
-            if (gameClient != null)
+            GameClient gameClient = null;
+            if (this.Clients.TryGetValue(id, out gameClient))
             {
                 gameClient.HandleDisconnection();
             }
-            this.Clients.Remove(connection.GetID());
+            this.Clients.Remove(id);
         }
 
         public void DisconnectDoubleSession(uint id)
@@ -52,14 +63,12 @@ namespace SkylightEmulator.HabboHotel.GameClients
 
         public void UpdateCachedUsername(uint id, string username)
         {
-            if (this.CachedUsernames.ContainsKey(id))
-            {
-                this.CachedUsernames[id] = username;
-            }
-            else
-            {
-                this.CachedUsernames.Add(id, username);
-            }
+            this.CachedUsernames[id] = username;
+        }
+
+        public void UpdateCachedID(uint id, string username)
+        {
+            this.CachedIDs[username] = id;
         }
 
         public string GetUsernameByID(uint id)
@@ -73,11 +82,12 @@ namespace SkylightEmulator.HabboHotel.GameClients
                 using (DatabaseClient dbClient = Skylight.GetDatabaseManager().GetClient())
                 {
                     dbClient.AddParamWithValue("userid", id);
-                    DataRow usernameRow = dbClient.ReadDataRow("SELECT username FROM users WHERE id = @userid");
+                    DataRow usernameRow = dbClient.ReadDataRow("SELECT username FROM users WHERE id = @userid LIMIT 1");
                     if (usernameRow != null)
                     {
                         string username = (string)usernameRow["username"];
                         this.UpdateCachedUsername(id, username);
+                        this.UpdateCachedID(id, username);
                         return username;
                     }
                     else
@@ -88,28 +98,63 @@ namespace SkylightEmulator.HabboHotel.GameClients
             }
         }
 
-        public GameClient GetGameClientById(uint id)
+        public bool UsernameExits(string username)
         {
-            if (this.Clients.Values.Any(g => g.GetHabbo() != null && g.GetHabbo().ID == id))
+            using (DatabaseClient dbClient = Skylight.GetDatabaseManager().GetClient())
             {
-                return this.Clients.Values.Where(g => g.GetHabbo() != null && g.GetHabbo().ID == id).First();
+                dbClient.AddParamWithValue("username", username);
+                DataRow usernameRow = dbClient.ReadDataRow("SELECT username FROM users WHERE username = @username LIMIT 1");
+                if (usernameRow != null && !string.IsNullOrEmpty((string)usernameRow["username"]))
+                {
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+        }
+
+        public uint GetIDByUsername(string username)
+        {
+            if (this.CachedIDs.ContainsKey(username))
+            {
+                return this.CachedIDs[username];
             }
             else
             {
-                return null;
+                using (DatabaseClient dbClient = Skylight.GetDatabaseManager().GetClient())
+                {
+                    dbClient.AddParamWithValue("username", username);
+                    DataRow idRow = dbClient.ReadDataRow("SELECT id FROM users WHERE username = @username LIMIT 1");
+                    if (idRow != null)
+                    {
+                        uint id = (uint)idRow["id"];
+                        this.UpdateCachedID(id, username);
+                        this.UpdateCachedUsername(id, username);
+                        return id;
+                    }
+                    else
+                    {
+                        return 0;
+                    }
+                }
             }
+        }
+
+        public GameClient GetGameClientById(uint id)
+        {
+            return this.Clients.Values.FirstOrDefault(g => g.GetHabbo() != null && g.GetHabbo().ID == id);
         }
 
         public GameClient GetGameClientByUsername(string username)
         {
-            if (this.Clients.Values.Any(g => g.GetHabbo() != null && g.GetHabbo().Username == username))
-            {
-                return this.Clients.Values.Where(g => g.GetHabbo() != null && g.GetHabbo().Username == username).First();
-            }
-            else
-            {
-                return null;
-            }
+            return this.Clients.Values.FirstOrDefault(g => g.GetHabbo() != null && g.GetHabbo().Username.ToLower() == username.ToLower());
+        }
+
+        public List<GameClient> GetClients()
+        {
+            return this.Clients.Values.ToList();
         }
     }
 }

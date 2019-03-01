@@ -1,6 +1,7 @@
 ﻿using SkylightEmulator.Communication.Headers;
 using SkylightEmulator.Core;
 using SkylightEmulator.Messages;
+using SkylightEmulator.Messages.MultiRevision;
 using SkylightEmulator.Utilies;
 using System;
 using System.Collections.Generic;
@@ -31,11 +32,11 @@ namespace SkylightEmulator.HabboHotel.Catalog
         public string PageTextTeaser;
         public string PageLinkDescription;
         public string PageLinkPagename;
-        public List<CatalogItem> Items;
+        public Dictionary<uint, CatalogItem> Items;
 
-        private ServerMessage ServerMessagePageInfo;
+        private MultiRevisionServerMessage ServerMessagePageInfo;
 
-        public CatalogPage(int pageId, int parentId, string caption, bool visible, bool enabled, int minRank, bool clubOnly, int iconColor, int iconImage, string pageLayout, string pageHeadline, string pageTeaser, string pageSpecial, string pageText1, string pageText2, string pageTextDetails, string pageTextTeaser, string pageLinkDescription, string pageLinkPagename, List<CatalogItem> items)
+        public CatalogPage(int pageId, int parentId, string caption, bool visible, bool enabled, int minRank, bool clubOnly, int iconColor, int iconImage, string pageLayout, string pageHeadline, string pageTeaser, string pageSpecial, string pageText1, string pageText2, string pageTextDetails, string pageTextTeaser, string pageLinkDescription, string pageLinkPagename, IEnumerable<CatalogItem> items)
         {
             this.PageID = pageId;
             this.ParentID = parentId;
@@ -57,89 +58,67 @@ namespace SkylightEmulator.HabboHotel.Catalog
             this.PageTextTeaser = pageTextTeaser; //8
             this.PageLinkDescription = pageLinkDescription; //9
             this.PageLinkPagename = pageLinkPagename; //10
-            this.Items = items;
+            this.Items = items.ToDictionary(i => i.Id, i => i);
+
+            this.ServerMessagePageInfo = new MultiRevisionServerMessage(OutgoingPacketsEnum.CatalogPage, new ValueHolder("CatalogPage", this));
         }
 
-        public ServerMessage PageData
+        public byte[] GetBytes(Revision revision)
         {
-            get
-            {
-                return this.ServerMessagePageInfo;
-            }
+            return this.ServerMessagePageInfo.GetBytes(revision);
         }
 
         public void Serialize(ServerMessage message)
         {
-            message.AppendBoolean(this.Visible);
-            message.AppendInt32(this.IconColor); //color
-            message.AppendInt32(this.IconImage); //image
-            message.AppendInt32(this.PageID); //page id
-            message.AppendStringWithBreak(this.Caption); //name
-            message.AppendInt32(Skylight.GetGame().GetCatalogManager().GetParentPages(this.PageID).Count); //count sub indexes
-        }
-
-        public void SerializePageInfo()
-        {
-            ServerMessage message = BasicUtilies.GetRevisionServerMessage(Skylight.Revision);
-            message.Init(r63aOutgoing.CatalogPage);
-            message.AppendInt32(this.PageID);
-
-            switch (this.PageLayout)
+            if (message.GetRevision() > Revision.R26_20080915_0408_7984_61ccb5f8b8797a3aba62c1fa2ca80169)
             {
-                case "frontpage":
-                    {
-                        message.AppendStringWithBreak("frontpage3");
-                        message.AppendInt32(3);
-                        message.AppendStringWithBreak(this.PageHeadline);
-                        message.AppendStringWithBreak(this.PageTeaser);
-                        message.AppendStringWithBreak("");
-                        message.AppendInt32(11);
-                        message.AppendStringWithBreak(this.PageText1);
-                        message.AppendStringWithBreak(this.PageLinkDescription);
-                        message.AppendStringWithBreak(this.PageText2);
-                        message.AppendStringWithBreak(this.PageTextDetails);
-                        message.AppendStringWithBreak(this.PageLinkPagename);
-                        message.AppendStringWithBreak("#FAF8CC");
-                        message.AppendStringWithBreak("#FAF8CC");
-                        message.AppendStringWithBreak("Read More >");
-                        message.AppendStringWithBreak("magic.credits");
-                    }
-                    break;
+                if (message.GetRevision() >= Revision.PRODUCTION_201601012205_226667486)
+                {
+                    message.AppendBoolean(this.Visible);
+                    message.AppendInt32(this.IconImage); //image
+                    message.AppendInt32(this.PageID); //page id
+                    message.AppendString(this.Caption); //page name
+                    message.AppendString(this.Caption); //localization
+                    message.AppendInt32(0); //offers count
+                    
+                    List<CatalogPage> childs = Skylight.GetGame().GetCatalogManager().GetParentPagesWithRankedSystem(this.PageID, 1);
 
-                default:
+                    message.AppendInt32(childs.Count);
+                    foreach (CatalogPage page2 in childs)
                     {
-                        message.AppendStringWithBreak(this.PageLayout);
-                        message.AppendInt32(3);
-                        message.AppendStringWithBreak(this.PageHeadline);
-                        message.AppendStringWithBreak(this.PageTeaser);
-                        message.AppendStringWithBreak(this.PageSpecial);
-                        message.AppendInt32(3);
-                        message.AppendStringWithBreak(this.PageText1);
-                        message.AppendStringWithBreak(this.PageTextDetails);
-                        message.AppendStringWithBreak(this.PageTextTeaser);
+                        page2.Serialize(message);
                     }
-                    break;
+                }
+                else if (message.GetRevision() >= Revision.RELEASE63_201211141113_913728051)
+                {
+                    message.AppendBoolean(this.Visible);
+                    message.AppendInt32(this.IconColor); //color
+                    message.AppendInt32(this.IconImage); //image
+                    message.AppendInt32(this.PageID); //page id
+                    message.AppendString(this.Caption); //name
+                    message.AppendString(this.Caption); //name
+                }
+                else
+                {
+                    message.AppendBoolean(this.Visible);
+                    message.AppendInt32(this.IconColor); //color
+                    message.AppendInt32(this.IconImage); //image
+                    message.AppendInt32(this.PageID); //page id
+                    message.AppendString(this.Caption); //name
+                }
             }
-
-            message.AppendInt32(this.Items.Count); //items count
-            foreach(CatalogItem item in this.Items)
+            else
             {
-                item.Serialize(message);
+                message.AppendString(this.PageID.ToString(), 9);
+                message.AppendString(this.Caption, 13);
             }
-            this.ServerMessagePageInfo = message;
         }
 
         public CatalogItem GetItem(uint id)
         {
-            foreach(CatalogItem item in this.Items)
-            {
-                if (item.Id == id)
-                {
-                    return item;
-                }
-            }
-
-            return null;
+            CatalogItem item;
+            this.Items.TryGetValue(id, out item);
+            return item;
         }
     }
 }

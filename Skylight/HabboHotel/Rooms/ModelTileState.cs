@@ -8,8 +8,9 @@ namespace SkylightEmulator.HabboHotel.Rooms
 {
     public enum ModelTileState
     {
-        FLOOR,
-        DOOR,
-        HOLE
+        OPEN = 0,
+        BLOCKED = 1,
+        SEAT = 2,
+        DOOR = 3,
     }
 }

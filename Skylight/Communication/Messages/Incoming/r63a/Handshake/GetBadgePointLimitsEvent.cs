@@ -15,10 +15,12 @@ namespace SkylightEmulator.Communication.Messages.Incoming.r63a.Handshake
     {
         public void Handle(GameClient session, ClientMessage message)
         {
-            ServerMessage Message = BasicUtilies.GetRevisionServerMessage(Skylight.Revision);
+            ServerMessage Message = BasicUtilies.GetRevisionServerMessage(Revision.RELEASE63_35255_34886_201108111108);
             Message.Init(r63aOutgoing.BadgePoints);
-            Message.AppendInt32(0); //achievement score
+            Message.AppendInt32(session.GetHabbo().GetUserStats().AchievementPoints);
             session.SendMessage(Message);
+
+            session.SendMessage(Skylight.GetGame().GetAchievementManager().BadgePointLimits(session.Revision));
         }
     }
 }

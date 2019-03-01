@@ -17,7 +17,7 @@ namespace SkylightEmulator.Communication.Messages.Incoming.r63a.Handshake
         {
             if (session != null && session.GetHabbo() != null && session.GetHabbo().GetRoomSession().RequestedRoomID > 0)
             {
-                ServerMessage Message = BasicUtilies.GetRevisionServerMessage(Skylight.Revision);
+                ServerMessage Message = BasicUtilies.GetRevisionServerMessage(Revision.RELEASE63_35255_34886_201108111108);
                 Message.Init(r63aOutgoing.SendFurniAliases);
                 Message.AppendInt32(0);
                 session.SendMessage(Message);

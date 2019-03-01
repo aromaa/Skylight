@@ -16,6 +16,7 @@ namespace SkylightEmulator.Communication.Messages.Incoming.r63a.Handshake
             {
                 session.GetHabbo().UpdateCredits(false);
                 session.GetHabbo().UpdateActivityPoints(-1, false);
+                session.GetHabbo().SendOnlineUsersCount();
             }
         }
     }

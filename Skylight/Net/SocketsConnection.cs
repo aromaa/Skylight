@@ -1,5 +1,6 @@
 ﻿using SkylightEmulator.Core;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -21,12 +22,18 @@ namespace SkylightEmulator.Net
         private AsyncCallback SendCallback;
         private SocketsConnection.ReceivedData ReceivedDataDelegate;
         private bool Disconnected = false;
+        private string DisconnectReason = null;
 
         public SocketsConnection(long id, Socket socket, EndPoint ip)
         {
             this.ID = id;
             this.Socket = socket;
             this.IP = ip.ToString().Split(':')[0];
+        }
+
+        ~SocketsConnection()
+        {
+            this.Disconnect("Finalizer");
         }
 
         public bool IsDisconnected()
@@ -68,6 +75,21 @@ namespace SkylightEmulator.Net
                 }
             }
         }
+        public void SendData(List<ArraySegment<byte>> data)
+        {
+            if (!this.Disconnected)
+            {
+                try
+                {
+                    this.Socket.BeginSend(data, SocketFlags.None, this.SendCallback, this);
+                }
+                catch
+                {
+                    this.Disconnect("Failed beging send data");
+                }
+            }
+        }
+
 
         public void AcceptData()
         {
@@ -125,10 +147,7 @@ namespace SkylightEmulator.Net
 
         public void HandleReceivedData(byte[] data)
         {
-            if (this.ReceivedDataDelegate != null)
-            {
-                this.ReceivedDataDelegate(data);
-            }
+            this.ReceivedDataDelegate?.Invoke(data);
         }
 
         public void ClientSendedData(IAsyncResult ar)
@@ -148,6 +167,11 @@ namespace SkylightEmulator.Net
 
         public void Disconnect(string reason)
         {
+            if (reason != null)
+            {
+                this.DisconnectReason = reason;
+            }
+
             this.Dispose();
         }
 
@@ -156,30 +180,36 @@ namespace SkylightEmulator.Net
             if (!this.Disconnected)
             {
                 this.Disconnected = true;
+
                 try
                 {
                     this.Socket.Shutdown(SocketShutdown.Both);
                     this.Socket.Close();
                     this.Socket.Dispose();
+
+                    if (this.Buffer != null)
+                    {
+                        Array.Clear(this.Buffer, 0, this.Buffer.Length);
+                    }
                 }
                 catch
                 {
 
                 }
 
-                Array.Clear(this.Buffer, 0, this.Buffer.Length);
                 this.Buffer = null;
                 this.ReceiveCallback = null;
                 this.SendCallback = null;
                 this.ReceivedDataDelegate = null;
 
-                Skylight.GetSocketsManager().Disconnection(this);
+                Skylight.GetSocketsManager().Disconnection(this.ID);
 
                 if (Skylight.GetConfig()["emu.messages.connections"] == "1")
                 {
-                    Logging.WriteLine(">> Connection Dropped [" + this.ID + "] from [" + this.GetIP() + "]");
+                    Logging.WriteLine(">> Connection Dropped [" + this.ID + "] from [" + this.GetIP() + "] for reason: " + this.DisconnectReason);
                 }
             }
+
             GC.SuppressFinalize(this);
         }
     }

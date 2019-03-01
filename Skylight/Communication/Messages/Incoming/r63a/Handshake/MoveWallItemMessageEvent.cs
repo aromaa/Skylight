@@ -17,10 +17,10 @@ namespace SkylightEmulator.Communication.Messages.Incoming.r63a.Handshake
         {
             if (session != null && session.GetHabbo() != null && session.GetHabbo().GetRoomSession() != null)
             {
-                Room room = Skylight.GetGame().GetRoomManager().GetRoom(session.GetHabbo().GetRoomSession().CurrentRoomID);
-                if (room != null)
+                Room room = session.GetHabbo().GetRoomSession().GetRoom();
+                if (room != null && room.GaveRoomRights(session))
                 {
-                    RoomItem item = room.RoomItemManager.GetRoomItem(message.PopWiredUInt());
+                    RoomItem item = room.RoomItemManager.TryGetWallItem(message.PopWiredUInt());
                     if (item != null)
                     {
                         string data = message.PopFixedString();

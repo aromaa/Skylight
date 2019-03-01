@@ -1,4 +1,5 @@
-﻿using SkylightEmulator.HabboHotel.GameClients;
+﻿using SkylightEmulator.Communication.Messages.Incoming.Handlers.Messenger;
+using SkylightEmulator.HabboHotel.GameClients;
 using SkylightEmulator.Messages;
 using System;
 using System.Collections.Generic;
@@ -8,18 +9,17 @@ using System.Threading.Tasks;
 
 namespace SkylightEmulator.Communication.Messages.Incoming.r63a.Handshake
 {
-    class RemoveBuddyMessageEvent : IncomingPacket
+    class RemoveBuddyMessageEvent : MessengerRemoveFriendsEventHandler
     {
-        public void Handle(GameClient session, ClientMessage message)
+        public override void Handle(GameClient session, ClientMessage message)
         {
-            if (session != null && session.GetHabbo() != null && session.GetHabbo().GetMessenger() != null)
+            this.RemovedFriends = new uint[message.PopWiredInt32()];
+            for (int i = 0; i < this.RemovedFriends.Length; i++)
             {
-                int count = message.PopWiredInt32();
-                for (int i = 0; i < count; i++)
-                {
-                    session.GetHabbo().GetMessenger().DeleteFriend(message.PopWiredUInt());
-                }
+                this.RemovedFriends[i] = message.PopWiredUInt();
             }
+
+            base.Handle(session, message);
         }
     }
 }

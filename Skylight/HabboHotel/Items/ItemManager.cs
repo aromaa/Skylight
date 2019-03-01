@@ -1,4 +1,5 @@
 ﻿using SkylightEmulator.Core;
+using SkylightEmulator.HabboHotel.Rooms;
 using SkylightEmulator.Storage;
 using SkylightEmulator.Utilies;
 using System;
@@ -13,16 +14,19 @@ namespace SkylightEmulator.HabboHotel.Items
     public class ItemManager
     {
         private Dictionary<uint, Item> Items;
+        public Dictionary<uint, List<RoomItem>> NewbieRoomItems;
+        private Dictionary<int, Soundtrack> Soundtracks;
 
         public ItemManager()
         {
             this.Items = new Dictionary<uint, Item>();
+            this.NewbieRoomItems = new Dictionary<uint, List<RoomItem>>();
+            this.Soundtracks = new Dictionary<int, Soundtrack>();
         }
 
         public void LoadItems(DatabaseClient dbClient)
         {
             Logging.Write("Loading items... ");
-            this.Items.Clear();
 
             DataTable items = dbClient.ReadDataTable("SELECT * FROM furniture");
             if (items != null)
@@ -30,22 +34,92 @@ namespace SkylightEmulator.HabboHotel.Items
                 foreach (DataRow dataRow in items.Rows)
                 {
                     uint id = (uint)dataRow["id"];
-                    this.Items.Add(id, new Item((uint)dataRow["Id"], (int)dataRow["sprite_id"], (string)dataRow["public_name"], (string)dataRow["item_name"], (string)dataRow["type"], (int)dataRow["width"], (int)dataRow["length"], (double)dataRow["stack_height"], TextUtilies.StringToBool(dataRow["can_stack"].ToString()), TextUtilies.StringToBool(dataRow["is_walkable"].ToString()), TextUtilies.StringToBool(dataRow["can_sit"].ToString()), TextUtilies.StringToBool(dataRow["allow_recycle"].ToString()), TextUtilies.StringToBool(dataRow["allow_trade"].ToString()), TextUtilies.StringToBool(dataRow["allow_marketplace_sell"].ToString()), TextUtilies.StringToBool(dataRow["allow_gift"].ToString()), TextUtilies.StringToBool(dataRow["allow_inventory_stack"].ToString()), (string)dataRow["interaction_type"], (int)dataRow["interaction_modes_count"]));
+
+                    Item item;
+                    if (this.Items.TryGetValue(id, out item))
+                    {
+                        item.SetValues(dataRow);
+                    }
+                    else
+                    {
+                        this.Items.Add(id, new Item(dataRow));
+                    }
                 }
             }
+
             Logging.WriteLine("completed!", ConsoleColor.Green);
         }
 
-        public Item GetItem(uint id)
+        public void LoadSoundtracks(DatabaseClient dbClient)
         {
-            if (this.Items.ContainsKey(id))
+            Logging.Write("Loading soundtracks... ");
+            Dictionary<int, Soundtrack> newSoundtracks = new Dictionary<int, Soundtrack>();
+            DataTable soundtracks = dbClient.ReadDataTable("SELECT * FROM soundtracks");
+            if (soundtracks != null && soundtracks.Rows.Count > 0)
             {
-                return this.Items[id];
+                foreach (DataRow dataRow in soundtracks.Rows)
+                {
+                    int id = (int)dataRow["id"];
+                    newSoundtracks.Add(id, new Soundtrack(id, (string)dataRow["name"], (string)dataRow["author"], (string)dataRow["track"], (int)dataRow["length"]));
+                }
             }
-            else
+            this.Soundtracks = newSoundtracks;
+            Logging.WriteLine("completed!", ConsoleColor.Green);
+        }
+
+        public void LoadNewbieRoomItems(DatabaseClient dbClient)
+        {
+            Logging.Write("Loading newbie room items... ");
+            Dictionary<uint, List<RoomItem>> newItems = new Dictionary<uint, List<RoomItem>>();
+
+            DataTable items = dbClient.ReadDataTable("SELECT * FROM items_newbie_room");
+            if (items != null)
             {
-                return null;
+                foreach (DataRow dataRow in items.Rows)
+                {
+                    string wallPos = (string)dataRow["wall_pos"];
+
+                    RoomItem item = RoomItem.GetRoomItem((uint)dataRow["Id"], 0, 0, (uint)dataRow["base_item"], (string)dataRow["extra_data"], (int)dataRow["x"], (int)dataRow["y"], (double)dataRow["z"], (int)dataRow["rot"], (string.IsNullOrEmpty(wallPos) ? null : new WallCoordinate(wallPos)), null);
+                    if (!newItems.ContainsKey((uint)dataRow["room_id"]))
+                    {
+                        newItems[(uint)dataRow["room_id"]] = new List<RoomItem>();
+                    }
+
+                    newItems[(uint)dataRow["room_id"]].Add(item);
+                }
             }
+
+            this.NewbieRoomItems = newItems;
+            Logging.WriteLine("completed!", ConsoleColor.Green);
+        }
+
+        public Item TryGetItem(uint id)
+        {
+            Item item;
+            this.Items.TryGetValue(id, out item);
+            return item;
+        }
+
+        public Soundtrack TryGetSoundtrack(int id)
+        {
+            Soundtrack track;
+            this.Soundtracks.TryGetValue(id, out track);
+            return track;
+        }
+
+        public void Shutdown()
+        {
+            if (this.Items != null)
+            {
+                this.Items.Clear();
+            }
+            this.Items = null;
+
+            if (this.Soundtracks != null)
+            {
+                this.Soundtracks.Clear();
+            }
+            this.Soundtracks = null;
         }
     }
 }

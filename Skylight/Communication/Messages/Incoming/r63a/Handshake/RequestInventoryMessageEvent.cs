@@ -12,10 +12,13 @@ namespace SkylightEmulator.Communication.Messages.Incoming.r63a.Handshake
     {
         public void Handle(GameClient session, ClientMessage message)
         {
-            session.SendMessage(session.GetHabbo().GetInventoryManager().SerializeAllItems());
+            //session.SendMessage(session.GetHabbo().GetInventoryManager().SerializeAllItems());
 
             //session.SendMessage(session.GetHabbo().GetInventoryManager().SerializeFloorItems());
             //session.SendMessage(session.GetHabbo().GetInventoryManager().SerializeWallItems());
+
+            session.GetHabbo().GetInventoryManager().SerializeFloorItemsSplitd();
+            session.GetHabbo().GetInventoryManager().SerializeWallItemsSplitd();
         }
     }
 }

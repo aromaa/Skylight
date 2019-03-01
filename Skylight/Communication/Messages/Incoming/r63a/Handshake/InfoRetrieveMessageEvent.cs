@@ -15,20 +15,7 @@ namespace SkylightEmulator.Communication.Messages.Incoming.r63a.Handshake
     {
         public void Handle(GameClient session, ClientMessage message)
         {
-            ServerMessage Message = BasicUtilies.GetRevisionServerMessage(Skylight.Revision);
-            Message.Init(r63aOutgoing.SendUserInfo);
-            Message.AppendStringWithBreak(session.GetHabbo().ID.ToString());
-            Message.AppendStringWithBreak(session.GetHabbo().Username);
-            Message.AppendStringWithBreak(session.GetHabbo().Look);
-            Message.AppendStringWithBreak(session.GetHabbo().Gender.ToUpper());
-            Message.AppendStringWithBreak(session.GetHabbo().Motto);
-            Message.AppendStringWithBreak(session.GetHabbo().RealName);
-            Message.AppendInt32(0); //unknown
-            Message.AppendInt32(session.GetHabbo().GetUserStats().RespectReceived);
-            Message.AppendInt32(session.GetHabbo().GetUserStats().DailyRespectPointsLeft);
-            Message.AppendInt32(session.GetHabbo().GetUserStats().DailyRespectPointsLeft);
-            Message.AppendBoolean(false); //friend stream enabled
-            session.SendMessage(Message);
+            session.SendMessage(BasicUtilies.GetRevisionPacketManager(session.Revision).GetOutgoing(OutgoingPacketsEnum.InfoRetrieve).Handle(new ValueHolder().AddValue("Session", session)));
         }
     }
 }

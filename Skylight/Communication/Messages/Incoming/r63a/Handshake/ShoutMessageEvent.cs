@@ -16,10 +16,16 @@ namespace SkylightEmulator.Communication.Messages.Incoming.r63a.Handshake
         {
             if (session != null && session.GetHabbo() != null)
             {
-                RoomUser roomUser = session.GetHabbo().GetRoomSession().CurrentRoomRoomUser;
+                RoomUnit roomUser = session.GetHabbo().GetRoomSession().CurrentRoomRoomUser;
                 if (roomUser != null)
                 {
-                    roomUser.Speak(TextUtilies.CheckBlacklistedWords(TextUtilies.FilterString(message.PopFixedString())), true);
+                    string message_ = message.PopFixedString();
+                    if (message_.Length > 300)
+                    {
+                        message_ = message_.Substring(0, 300);
+                    }
+
+                    roomUser.Speak(TextUtilies.FilterString(message_), true);
                 }
             }
         }

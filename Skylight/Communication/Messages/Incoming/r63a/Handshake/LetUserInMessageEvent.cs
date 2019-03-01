@@ -18,8 +18,8 @@ namespace SkylightEmulator.Communication.Messages.Incoming.r63a.Handshake
         {
             if (session != null && session.GetHabbo() != null && session.GetHabbo().GetRoomSession() != null)
             {
-                Room room = Skylight.GetGame().GetRoomManager().GetRoom(session.GetHabbo().GetRoomSession().CurrentRoomID);
-                if (room != null && room.HaveRights(session))
+                Room room = Skylight.GetGame().GetRoomManager().TryGetRoom(session.GetHabbo().GetRoomSession().CurrentRoomID);
+                if (room != null && room.GaveRoomRights(session))
                 {
                     string username = message.PopFixedString();
                     GameClient gameClient = Skylight.GetGame().GetGameClientManager().GetGameClientByUsername(username);
@@ -30,13 +30,13 @@ namespace SkylightEmulator.Communication.Messages.Incoming.r63a.Handshake
                         {
                             gameClient.GetHabbo().GetRoomSession().LoadingRoom = true;
 
-                            ServerMessage doorBellAnswer = BasicUtilies.GetRevisionServerMessage(Skylight.Revision);
+                            ServerMessage doorBellAnswer = BasicUtilies.GetRevisionServerMessage(Revision.RELEASE63_35255_34886_201108111108);
                             doorBellAnswer.Init(r63aOutgoing.DoorBellAnswer);
                             gameClient.SendMessage(doorBellAnswer);
                         }
                         else
                         {
-                            ServerMessage doorBellNoAnswer = BasicUtilies.GetRevisionServerMessage(Skylight.Revision);
+                            ServerMessage doorBellNoAnswer = BasicUtilies.GetRevisionServerMessage(Revision.RELEASE63_35255_34886_201108111108);
                             doorBellNoAnswer.Init(r63aOutgoing.DoorBellNoAnswer);
                             gameClient.SendMessage(doorBellNoAnswer);
                         }

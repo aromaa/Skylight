@@ -15,9 +15,14 @@ namespace SkylightEmulator.Communication.Messages.Incoming.r63a.Handshake
     {
         public void Handle(GameClient session, ClientMessage message)
         {
-            ServerMessage Message = BasicUtilies.GetRevisionServerMessage(Skylight.Revision);
+            //if (session.SecurityNumber[1] == 3)
+            //{
+            //    session.SecurityNumber[1] = 4;
+            //}
+
+            ServerMessage Message = BasicUtilies.GetRevisionServerMessage(Revision.RELEASE63_35255_34886_201108111108);
             Message.Init(r63aOutgoing.SendSessionParamenters);
-            Message.AppendInt32(0);
+            Message.AppendInt32(0); //count
             session.SendMessage(Message);
         }
     }

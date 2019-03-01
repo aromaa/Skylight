@@ -22,13 +22,13 @@ namespace SkylightEmulator.Communication.Messages.Incoming.r63a.Handshake
                 {
                     string roomName = message.PopFixedString();
                     string roomModel = message.PopFixedString();
-                    RoomData roomData = Skylight.GetGame().GetRoomManager().CreateRoom(session, roomName, roomModel);
+                    RoomData roomData = Skylight.GetGame().GetRoomManager().CreateRoom(session, roomName, "", roomModel, 0, 25, 0, RoomStateType.OPEN);
                     if (roomData != null)
                     {
-                        ServerMessage Message = BasicUtilies.GetRevisionServerMessage(Skylight.Revision);
+                        ServerMessage Message = BasicUtilies.GetRevisionServerMessage(Revision.RELEASE63_35255_34886_201108111108);
                         Message.Init(r63aOutgoing.FlatRoomCreated);
                         Message.AppendUInt(roomData.ID);
-                        Message.AppendStringWithBreak(roomData.Name);
+                        Message.AppendString(roomData.Name);
                         session.SendMessage(Message);
                     }
                 }

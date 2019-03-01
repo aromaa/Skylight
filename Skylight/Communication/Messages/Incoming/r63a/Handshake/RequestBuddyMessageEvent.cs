@@ -1,4 +1,5 @@
-﻿using SkylightEmulator.HabboHotel.GameClients;
+﻿using SkylightEmulator.Communication.Messages.Incoming.Handlers.Messenger;
+using SkylightEmulator.HabboHotel.GameClients;
 using SkylightEmulator.Messages;
 using System;
 using System.Collections.Generic;
@@ -8,14 +9,13 @@ using System.Threading.Tasks;
 
 namespace SkylightEmulator.Communication.Messages.Incoming.r63a.Handshake
 {
-    class RequestBuddyMessageEvent : IncomingPacket
+    class RequestBuddyMessageEvent : MessengerSendFriendRequestEventHandler
     {
-        public void Handle(GameClient session, ClientMessage message)
+        public override void Handle(GameClient session, ClientMessage message)
         {
-            if (session != null && session.GetHabbo() != null && session.GetHabbo().GetMessenger() != null)
-            {
-                session.GetHabbo().GetMessenger().RequestFriend(message.PopFixedString());
-            }
+            this.Username = message.PopFixedString();
+
+            base.Handle(session, message);
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using SkylightEmulator.Core;
+using SkylightEmulator.HabboHotel.Data.Enums;
 using SkylightEmulator.HabboHotel.GameClients;
 using SkylightEmulator.HabboHotel.Rooms;
 using SkylightEmulator.Messages;
@@ -16,14 +17,34 @@ namespace SkylightEmulator.Communication.Messages.Incoming.r63a.Handshake
         {
             if (session != null && session.GetHabbo() != null && session.GetHabbo().GetRoomSession() != null)
             {
-                RoomUser user = session.GetHabbo().GetRoomSession().CurrentRoomRoomUser;
+                RoomUnitUser user = session.GetHabbo().GetRoomSession().CurrentRoomRoomUser;
                 if (user != null)
                 {
-                    int x = message.PopWiredInt32();
-                    int y = message.PopWiredInt32();
-                    if (user.GetX != x || user.GetY != y)
+                    if (user.Riding != null)
                     {
-                        user.MoveTo(x, y);
+                        int x = message.PopWiredInt32();
+                        int y = message.PopWiredInt32();
+                        user.Riding.MoveTo(x, y);
+                    }
+                    else
+                    {
+                        if ((user.RestrictMovementType & RestrictMovementType.Client) == 0)
+                        {
+                            int x = message.PopWiredInt32();
+                            int y = message.PopWiredInt32();
+                            if (user.X != x || user.Y != y)
+                            {
+                                if (user.Teleport)
+                                {
+                                    user.StopMoving();
+                                    user.SetLocation(x, y, user.Z);
+                                }
+                                else
+                                {
+                                    user.MoveTo(x, y);
+                                }
+                            }
+                        }
                     }
                 }
             }

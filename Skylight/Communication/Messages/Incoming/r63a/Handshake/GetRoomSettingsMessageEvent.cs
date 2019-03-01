@@ -18,14 +18,14 @@ namespace SkylightEmulator.Communication.Messages.Incoming.r63a.Handshake
         {
             if (session != null && session.GetHabbo() != null && session.GetHabbo().GetRoomSession() != null)
             {
-                Room room = Skylight.GetGame().GetRoomManager().GetRoom(session.GetHabbo().GetRoomSession().CurrentRoomID);
-                if (room != null && room.IsOwner(session))
+                Room room = Skylight.GetGame().GetRoomManager().TryGetRoom(session.GetHabbo().GetRoomSession().CurrentRoomID);
+                if (room != null && room.HaveOwnerRights(session))
                 {
-                    ServerMessage roomSettings = BasicUtilies.GetRevisionServerMessage(Skylight.Revision);
+                    ServerMessage roomSettings = BasicUtilies.GetRevisionServerMessage(Revision.RELEASE63_35255_34886_201108111108);
                     roomSettings.Init(r63aOutgoing.RoomSettings);
                     roomSettings.AppendUInt(room.ID);
-                    roomSettings.AppendStringWithBreak(room.RoomData.Name);
-                    roomSettings.AppendStringWithBreak(room.RoomData.Description);
+                    roomSettings.AppendString(room.RoomData.Name);
+                    roomSettings.AppendString(room.RoomData.Description);
                     roomSettings.AppendInt32((int)room.RoomData.State);
                     roomSettings.AppendInt32(room.RoomData.Category);
                     roomSettings.AppendInt32(room.RoomData.UsersMax);
@@ -33,14 +33,14 @@ namespace SkylightEmulator.Communication.Messages.Incoming.r63a.Handshake
                     roomSettings.AppendInt32(room.RoomData.Tags.Count);
                     foreach (string current in room.RoomData.Tags)
                     {
-                        roomSettings.AppendStringWithBreak(current);
+                        roomSettings.AppendString(current);
                     }
 
                     roomSettings.AppendInt32(room.UsersWithRights.Count);
                     foreach (uint userId in room.UsersWithRights)
                     {
                         roomSettings.AppendUInt(userId);
-                        roomSettings.AppendStringWithBreak(Skylight.GetGame().GetGameClientManager().GetUsernameByID(userId));
+                        roomSettings.AppendString(Skylight.GetGame().GetGameClientManager().GetUsernameByID(userId));
                     }
 
                     roomSettings.AppendInt32(room.UsersWithRights.Count);

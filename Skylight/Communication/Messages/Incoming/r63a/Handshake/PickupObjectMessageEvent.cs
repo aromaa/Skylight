@@ -14,13 +14,15 @@ namespace SkylightEmulator.Communication.Messages.Incoming.r63a.Handshake
     {
         public void Handle(GameClient session, ClientMessage message)
         {
-            message.PopWiredInt32();
             if (session != null && session.GetHabbo() != null && session.GetHabbo().GetRoomSession() != null)
             {
-                Room room = Skylight.GetGame().GetRoomManager().GetRoom(session.GetHabbo().GetRoomSession().CurrentRoomID);
-                if (room != null)
+                Room room = session.GetHabbo().GetRoomSession().GetRoom();
+                if (room != null && room.HaveOwnerRights(session))
                 {
-                    RoomItem item = room.RoomItemManager.GetRoomItem(message.PopWiredUInt());
+                    int itemType = message.PopWiredInt32();
+                    uint itemId = message.PopWiredUInt();
+
+                    RoomItem item = itemType == 2 ? room.RoomItemManager.TryGetFloorItem(itemId) : room.RoomItemManager.TryGetWallItem(itemId);
                     if (item != null)
                     {
                         if (item.IsWallItem)
@@ -31,8 +33,9 @@ namespace SkylightEmulator.Communication.Messages.Incoming.r63a.Handshake
                         {
                             room.RoomItemManager.PickupFloorItemFromRoom(session, item);
                         }
-                        session.GetHabbo().GetInventoryManager().AddItemToHand(item);
-                        session.GetHabbo().GetInventoryManager().UpdateInventory(false);
+
+                        session.GetHabbo().GetInventoryManager().AddRoomItemToHand(item);
+                        //session.GetHabbo().GetInventoryManager().UpdateInventoryItems(false);
                     }
                 }
             }

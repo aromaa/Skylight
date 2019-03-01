@@ -7,16 +7,23 @@ namespace SkylightEmulator.Core
 	{
 		private Dictionary<string, string> data;
 
-		public ConfigurationData(string filePath)
+		public ConfigurationData(string filePath, bool throwExceptionIfFileNotFound = false)
 		{
 			this.data = new Dictionary<string, string>();
 			if (!File.Exists(filePath))
 			{
-                Logging.WriteLine("Unable to locate configuration file at '" + filePath + "'!", ConsoleColor.Red);
-                Logging.WriteBlank();
-                Logging.WriteLine("Press any key to shut down ...", ConsoleColor.Blue);
-                Console.ReadKey(true);
-                Skylight.Destroy();
+                if (!throwExceptionIfFileNotFound)
+                {
+                    Logging.WriteLine("Unable to locate configuration file at '" + filePath + "'!", ConsoleColor.Red);
+                    Logging.WriteBlank();
+                    Logging.WriteLine("Press any key to shut down ...", ConsoleColor.Blue);
+                    Console.ReadKey(true);
+                    Program.Destroy();
+                }
+                else
+                {
+                    throw new Exception("Unable to locate configuration file at '" + filePath + "'!");
+                }
 			}
 			try
 			{
@@ -32,11 +39,10 @@ namespace SkylightEmulator.Core
 							{
 								string key = str.Substring(0, num);
 								string value = str.Substring(num + 1);
-								data.Add(key, value);
+                                this.data.Add(key, value);
 							}
 						}
 					}
-					streamReader.Close();
 				}
 			}
 			catch (Exception ex)
@@ -57,6 +63,32 @@ namespace SkylightEmulator.Core
                 {
                     throw new Exception("Unable to find configuration file data: " + key);
                 }
+            }
+        }
+
+        public HashSet<string> GetChildKeys(string key)
+        {
+            HashSet<string> childs = new HashSet<string>();
+            foreach(string key_ in this.data.Keys)
+            {
+                if (key_.StartsWith(key))
+                {
+                    int lenght = key_.Substring(key.Length + 1).IndexOf('.');
+                    childs.Add(key_.Substring(key.Length + 1, lenght));
+                }
+            }
+            return childs;
+        }
+
+        public string TryGet(string key)
+        {
+            if (this.data.ContainsKey(key))
+            {
+                return this.data[key];
+            }
+            else
+            {
+                return "";
             }
         }
 	}

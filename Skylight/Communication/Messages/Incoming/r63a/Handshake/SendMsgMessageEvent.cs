@@ -1,4 +1,7 @@
-﻿using SkylightEmulator.HabboHotel.GameClients;
+﻿using SkylightEmulator.Communication.Headers;
+using SkylightEmulator.Communication.Messages.Incoming.Handlers.Messenger;
+using SkylightEmulator.Core;
+using SkylightEmulator.HabboHotel.GameClients;
 using SkylightEmulator.Messages;
 using SkylightEmulator.Utilies;
 using System;
@@ -9,24 +12,14 @@ using System.Threading.Tasks;
 
 namespace SkylightEmulator.Communication.Messages.Incoming.r63a.Handshake
 {
-    class SendMsgMessageEvent : IncomingPacket
+    class SendMsgMessageEvent : MessengerSendPrivateMessageEventHandler
     {
-        public void Handle(GameClient session, ClientMessage message)
+        public override void Handle(GameClient session, ClientMessage message)
         {
-            if (session != null && session.GetHabbo() != null && session.GetHabbo().GetMessenger() != null)
-            {
-                uint userId = message.PopWiredUInt();
-                string chat = TextUtilies.FilterString(message.PopFixedString());
+            this.UserID = message.PopWiredUInt();
+            this.Message = message.PopFixedString();
 
-                if (userId > 0)
-                {
-                    session.GetHabbo().GetMessenger().SendChatMessage(userId, chat);
-                }
-                else
-                {
-
-                }
-            }
+            base.Handle(session, message);
         }
     }
 }

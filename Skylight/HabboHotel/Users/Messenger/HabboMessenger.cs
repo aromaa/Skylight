@@ -1,5 +1,9 @@
 ﻿using SkylightEmulator.Communication.Headers;
+using SkylightEmulator.Communication.Messages.Outgoing.Handlers.Messenger;
 using SkylightEmulator.Core;
+using SkylightEmulator.HabboHotel.Data.Data;
+using SkylightEmulator.HabboHotel.Data.Enums;
+using SkylightEmulator.HabboHotel.Data.Interfaces;
 using SkylightEmulator.HabboHotel.GameClients;
 using SkylightEmulator.Messages;
 using SkylightEmulator.Storage;
@@ -16,429 +20,290 @@ namespace SkylightEmulator.HabboHotel.Users.Messenger
     public class HabboMessenger
     {
         private readonly uint ID;
+
         private Habbo Habbo;
 
         private Dictionary<uint, MessengerFriend> Friends;
-        private Dictionary<uint, MessengerRequest> Requests;
+        private Dictionary<int, MessengerCategory> FriendCategorys;
+        private Dictionary<uint, MessengerRequest> FriendRequestsPending;
+        private HashSet<uint> FriendRequestsSend;
 
         public HabboMessenger(uint id, Habbo habbo)
         {
             this.Friends = new Dictionary<uint, MessengerFriend>();
-            this.Requests = new Dictionary<uint, MessengerRequest>();
+            this.FriendCategorys = new Dictionary<int, MessengerCategory>();
+            this.FriendRequestsPending = new Dictionary<uint, MessengerRequest>();
+            this.FriendRequestsSend = new HashSet<uint>();
 
             this.ID = id;
             this.Habbo = habbo;
         }
 
+        public void LoadCategorys()
+        {
+            this.FriendCategorys.Clear();
+
+            DataTable categorys = this.Habbo.GetUserDataFactory().GetMessengerFriendCategorys();
+            if (categorys?.Rows.Count > 0)
+            {
+                foreach(DataRow category in categorys.Rows)
+                {
+                    int id = (int)category["id"];
+                    this.FriendCategorys.Add(id, new MessengerCategory(id, (string)category["name"]));
+                }
+            }
+        }
+
         public void LoadFriends()
         {
             this.Friends.Clear();
+
             DataTable friends = this.Habbo.GetUserDataFactory().GetMessengerFriends();
-            if (friends != null)
+            if (friends?.Rows.Count > 0)
             {
                 foreach (DataRow friend in friends.Rows)
                 {
                     uint id = (uint)friend["friend_id"];
-                    this.Friends.Add(id, new MessengerFriend(id, (string)friend["look"], (string)friend["motto"], (double)friend["last_online"]));
+                    this.Friends.Add(id, new MessengerFriend(id, (int)friend["category"], (string)friend["look"], (string)friend["motto"], (double)friend["last_online"], (MessengerFriendRelation)int.Parse((string)friend["relation"])));
                 }
+            }
+
+            if (this.Habbo.HasPermission("acc_staffchat"))
+            {
+                this.Friends.Add(0, new MessengerFriend(0, 0, this.Habbo.Look, "Staff Chat", 0, MessengerFriendRelation.None));
             }
         }
 
-        public void LoadRequests()
+        public void LoadFriendRequestsPending()
         {
-            this.Requests.Clear();
-            DataTable requests = this.Habbo.GetUserDataFactory().GetMessengerRequests();
-            if (requests != null)
+            this.FriendRequestsPending.Clear();
+
+            DataTable requests = this.Habbo.GetUserDataFactory().GetMessengerFriendRequestsPending();
+            if (requests?.Rows.Count > 0)
             {
                 foreach (DataRow request in requests.Rows)
                 {
-                    uint id = (uint)request["id"];
-                    this.Requests.Add(id, new MessengerRequest(id, this.ID, (uint)request["from_id"]));
+                    uint fromId = (uint)request["from_id"];
+                    this.FriendRequestsPending.Add(fromId, new MessengerRequest(this.ID, fromId, (string)request["username"], (string)request["look"]));
                 }
             }
         }
 
-        public void SendFriends()
+        public void LoadFriendRequestsSend()
         {
-            ServerMessage Message = BasicUtilies.GetRevisionServerMessage(Skylight.Revision);
-            Message.Init(r63aOutgoing.MessengerFriends);
-            Message.AppendInt32(6000);
-            Message.AppendInt32(200);
-            Message.AppendInt32(6000);
-            Message.AppendInt32(900);
-            Message.AppendInt32(0); //category count
+            this.FriendRequestsSend.Clear();
 
-            Message.AppendInt32(this.Friends.Count);
-            foreach (MessengerFriend friend in this.Friends.Values.ToList())
+            DataTable send = this.Habbo.GetUserDataFactory().GetMessengerFriendRequestsSend();
+            if (send?.Rows.Count > 0)
             {
-                friend.Serialize(Message, true);
-            }
-            this.Habbo.GetSession().SendMessage(Message);
-        }
-
-        public void SendRequests()
-        {
-            ServerMessage Message = BasicUtilies.GetRevisionServerMessage(Skylight.Revision);
-            Message.Init(r63aOutgoing.FriendRequests);
-            Message.AppendInt32(this.Requests.Count);
-            Message.AppendInt32(this.Requests.Count);
-            foreach (MessengerRequest request in this.Requests.Values.ToList())
-            {
-                request.Serialize(Message);
-            }
-            this.Habbo.GetSession().SendMessage(Message);
-        }
-
-        public void SearchHabbo(string username)
-        {
-            ServerMessage Message = BasicUtilies.GetRevisionServerMessage(Skylight.Revision);
-            Message.Init(r63aOutgoing.MessengerSearchResult);
-
-            DataTable matchUsers = null;
-            using (DatabaseClient dbClient = Skylight.GetDatabaseManager().GetClient())
-            {
-                dbClient.AddParamWithValue("query", username + "%");
-                matchUsers = dbClient.ReadDataTable("SELECT id, look, motto, last_online FROM users WHERE username LIKE @query LIMIT 50");
-            }
-
-            if (matchUsers != null)
-            {
-                List<DataRow> friends = new List<DataRow>();
-                List<DataRow> randomPeople = new List<DataRow>();
-                foreach (DataRow dataRow in matchUsers.Rows)
+                foreach(DataRow request in send.Rows)
                 {
-                    if (this.Friends.ContainsKey((uint)dataRow["Id"]))
-                    {
-                        friends.Add(dataRow);
-                    }
-                    else
-                    {
-                        randomPeople.Add(dataRow);
-                    }
-                }
-
-                Message.AppendInt32(friends.Count);
-                foreach (DataRow dataRow in friends)
-                {
-                    this.Friends[(uint)dataRow["Id"]].Serialize(Message, false);
-                }
-
-                Message.AppendInt32(randomPeople.Count);
-                foreach (DataRow dataRow in randomPeople)
-                {
-                    new MessengerFriend((uint)dataRow["Id"], (string)dataRow["look"], (string)dataRow["motto"], (double)dataRow["last_online"]).Serialize(Message, false);
-                }
-            }
-            else
-            {
-                Message.AppendInt32(0);
-                Message.AppendInt32(0);
-            }
-
-            this.Habbo.GetSession().SendMessage(Message);
-        }
-
-        public bool RequestSended(uint id)
-        {
-            if (this.Requests.ContainsKey(id))
-            {
-                return true;
-            }
-            else
-            {
-                using (DatabaseClient dbClient = Skylight.GetDatabaseManager().GetClient())
-                {
-                    dbClient.AddParamWithValue("toid", id);
-                    dbClient.AddParamWithValue("fromid", this.ID);
-                    return dbClient.ReadDataRow("SELECT null FROM messenger_requests WHERE to_id = @toid AND from_id = @fromid") != null;
+                    this.FriendRequestsSend.Add((uint)request["to_id"]);
                 }
             }
         }
-
-        public void RequestFriend(string username)
+        
+        /// <summary>
+        /// "Tries" add the user, this is only HashSet.Add
+        /// </summary>
+        /// <param name="userId">The user id that should be tried to add to friends</param>
+        /// <returns>If the user has no previous pending friend requests</returns>
+        public bool TrySendFriendRequestTo(uint userId)
         {
-            DataRow user = null;
-            using (DatabaseClient dbClient = Skylight.GetDatabaseManager().GetClient())
-            {
-                dbClient.AddParamWithValue("username", username);
-                user = dbClient.ReadDataRow("SELECT id, block_newfriends FROM users WHERE username = @username LIMIT 1;");
-            }
+            return this.FriendRequestsSend.Add(userId);
+        }
 
-            if (user != null)
-            {
-                if (TextUtilies.StringToBool((string)user["block_newfriends"]))
-                {
-                    ServerMessage Message = BasicUtilies.GetRevisionServerMessage(Skylight.Revision);
-                    Message.Init(r63aOutgoing.RequestFriendError);
-                    Message.AppendInt32(39);
-                    Message.AppendInt32(3);
-                    this.Habbo.GetSession().SendMessage(Message);
-                }
-                else
-                {
-                    uint id = (uint)user["id"];
-                    if (!this.RequestSended(id))
-                    {
-                        MessengerRequest request = null;
-                        using (DatabaseClient dbClient = Skylight.GetDatabaseManager().GetClient())
-                        {
-                            dbClient.AddParamWithValue("toid", id);
-                            dbClient.AddParamWithValue("userid", this.ID);
-                            dbClient.ExecuteQuery("INSERT INTO messenger_requests (to_id, from_id) VALUES (@toid, @userid)");
+        public bool HasSendedFriendRequestTo(uint userId)
+        {
+            return this.FriendRequestsSend.Contains(userId);
+        }
 
-                            request = new MessengerRequest((uint)dbClient.GetID(), id, this.ID);
-                        }
+        public bool HasFriendRequestPendingFrom(uint userId)
+        {
+            return this.FriendRequestsPending.ContainsKey(userId);
+        }
 
-                        if (request != null)
-                        {
-                            this.AddFriendRequest(request);
-                            GameClient gameClient = Skylight.GetGame().GetGameClientManager().GetGameClientById(id);
-                            if (gameClient != null && gameClient.GetHabbo() != null && gameClient.GetHabbo().GetMessenger() != null)
-                            {
-                                gameClient.GetHabbo().GetMessenger().AddFriendRequest(request);
-                            }
-                        }
-                    }
-                }
-            }
+        public bool IsFriendWith(uint id)
+        {
+            return this.Friends.ContainsKey(id);
         }
 
         public void AddFriendRequest(MessengerRequest request)
         {
-            this.Requests.Add(request.ID, request);
+            this.FriendRequestsPending.Add(request.FromID, request);
 
-            if (request.ToID == this.ID)
-            {
-                ServerMessage Message = BasicUtilies.GetRevisionServerMessage(Skylight.Revision);
-                Message.Init(r63aOutgoing.NewFriendRequest);
-                request.Serialize(Message);
-                this.Habbo.GetSession().SendMessage(Message);
-            }
+            this.Habbo.GetSession().SendMessage(new MessengerReceiveFriendRequestComposerHandler(request.FromID, request.FromUsername, request.FromLook));
         }
 
-        public MessengerRequest GetFriendRequest(uint id)
+        /// <summary>
+        /// Removes the friend from this user and from the partner
+        /// </summary>
+        /// <param name="userId">Friend user id</param>
+        public void RemoveFriendFromBoth(uint userId)
         {
-            if (this.Requests.ContainsKey(id))
-            {
-                return this.Requests[id];
-            }
-            else
-            {
-                return null;
-            }
+            this.RemoveFriend(userId);
+
+            Skylight.GetGame().GetGameClientManager().GetGameClientById(userId)?.GetHabbo()?.GetMessenger()?.RemoveFriend(this.ID);
         }
 
-        public bool IsFriend(uint id)
+        /// <summary>
+        /// Removes friend only from this user, does not remove it from the partner
+        /// </summary>
+        /// <param name="userId">Friend user id</param>
+        public void RemoveFriend(uint userId)
         {
-            if (this.Friends.ContainsKey(id))
+            if (this.Friends.Remove(userId))
             {
-                return true;
-            }
-            else
-            {
-                return false;
+                this.Habbo.GetSession().SendMessage(new MessengerUpdateFriendsComposerHandler(null, new List<MessengerUpdateFriend>() { new MessengerUpdateFriendRemove(userId) }));
+                this.Habbo.GetUserAchievements().CheckAchievement("FriendListSize");
             }
         }
 
-        public void AcceptFriend(uint id)
+        public void AddFriendToBoth(uint userId)
         {
-            using (DatabaseClient dbClient = Skylight.GetDatabaseManager().GetClient())
-            {
-                dbClient.AddParamWithValue("fromid", id);
-                dbClient.AddParamWithValue("toid", this.ID);
-                dbClient.ExecuteQuery("INSERT INTO messenger_friends (user_one_id,user_two_id) VALUES (@fromid,@toid)");
-            }
-            this.AddFriend(id);
-            GameClient gameClient = Skylight.GetGame().GetGameClientManager().GetGameClientById(id);
-            if (gameClient != null && gameClient.GetHabbo() != null && gameClient.GetHabbo().GetMessenger() != null)
-            {
-                gameClient.GetHabbo().GetMessenger().AddFriend(this.ID);
-            }
+            this.AddFriend(userId);
+
+            Skylight.GetGame().GetGameClientManager().GetGameClientById(userId)?.GetHabbo()?.GetMessenger()?.AddFriend(new MessengerFriend(this.Habbo.ID, 0, this.Habbo.Look, this.Habbo.Motto, this.Habbo.LastOnline, MessengerFriendRelation.None));
         }
 
+        /// <summary>
+        /// Only adds uses to this user, does not add it to the partner
+        /// </summary>
+        /// <param name="id">Friend user id</param>
         public void AddFriend(uint id)
         {
-            GameClient gameClient = Skylight.GetGame().GetGameClientManager().GetGameClientById(id);
-            if (gameClient != null && gameClient.GetHabbo() != null)
+            bool found = false;
+            string look = null;
+            string motto = null;
+            double lastOnline = 0;
+
+            GameClient target = Skylight.GetGame().GetGameClientManager().GetGameClientById(id);
+            if (target?.GetHabbo() != null)
             {
-                MessengerFriend friend = new MessengerFriend(id, gameClient.GetHabbo().Look, gameClient.GetHabbo().Motto, gameClient.GetHabbo().LastOnline);
-                friend.NeedUpdate = true;
-                this.Friends.Add(id, friend);
+                found = true;
+                look = target.GetHabbo().Look;
+                motto = target.GetHabbo().Motto;
+                lastOnline = target.GetHabbo().LastOnline;
             }
             else
             {
+                DataRow user;
                 using (DatabaseClient dbClient = Skylight.GetDatabaseManager().GetClient())
                 {
                     dbClient.AddParamWithValue("userid", id);
-                    DataRow user = dbClient.ReadDataRow("SELECT motto,look,last_online FROM users WHERE id = @userid");
-                    if (user != null)
-                    {
-                        MessengerFriend friend = new MessengerFriend(id, (string)user["look"], (string)user["motto"], (double)user["last_online"]);
-                        friend.NeedUpdate = true;
-                        this.Friends.Add(id, friend);
-                    }
+                    user = dbClient.ReadDataRow("SELECT motto,look,last_online FROM users WHERE id = @userid");
+                }
+
+                if (user != null)
+                {
+                    found = true;
+                    look = (string)user["look"];
+                    motto = (string)user["motto"];
+                    lastOnline = (double)user["last_online"];
                 }
             }
-            this.SendUpdates();
+
+            if (found)
+            {
+                this.AddFriend(new MessengerFriend(id, 0, look, motto, lastOnline, MessengerFriendRelation.None));
+            }
         }
 
+        /// <summary>
+        /// Only adds uses to this user, does not add it to the partner
+        /// </summary>
+        /// <param name="friend">The friend to be added</param>
+        public void AddFriend(MessengerFriend friend)
+        {
+            this.FriendRequestsSend.Remove(friend.ID);
+            this.FriendRequestsPending.Remove(friend.ID);
+            this.Friends.Add(friend.ID, friend);
+
+            this.Habbo.GetSession().SendMessage(new MessengerUpdateFriendsComposerHandler(null, new List<MessengerUpdateFriend>() { new MessengerUpdateFriendAdd(friend) }));
+            this.Habbo.GetUserAchievements().CheckAchievement("FriendListSize");
+        }
+
+        public void DeclineAllFriendRequests()
+        {
+            this.FriendRequestsPending.Clear();
+        }
+
+        public void DeclineFriendRequest(uint userId)
+        {
+            this.FriendRequestsPending.Remove(userId);
+        }
+
+        public MessengerFriend GetFriend(uint userId)
+        {
+            MessengerFriend friend;
+            this.Friends.TryGetValue(userId, out friend);
+            return friend;
+        }
+        
         public void SendUpdates()
         {
-            List<MessengerFriend> needUpdate = new List<MessengerFriend>();
+            List<MessengerUpdateFriend> needUpdate = new List<MessengerUpdateFriend>();
             foreach (MessengerFriend friend in this.Friends.Values)
             {
                 if (friend.NeedUpdate)
                 {
                     friend.NeedUpdate = false;
-                    needUpdate.Add(friend);
+
+                    needUpdate.Add(new MessengerUpdateFriendUpdate(friend));
                 }
             }
 
-            ServerMessage Message = BasicUtilies.GetRevisionServerMessage(Skylight.Revision);
-            Message.Init(r63aOutgoing.MeesengerUpdate);
-            Message.AppendInt32(0);
-            Message.AppendInt32(needUpdate.Count);
-            Message.AppendInt32(0);
-            foreach (MessengerFriend friend in this.Friends.Values)
+            if (needUpdate.Count > 0)
             {
-                friend.Serialize(Message, true);
-            }
-            this.Habbo.GetSession().SendMessage(Message);
-        }
-
-        public void RemoveFriendRequest(uint fromId)
-        {
-            using (DatabaseClient dbClient = Skylight.GetDatabaseManager().GetClient())
-            {
-                dbClient.AddParamWithValue("fromid", fromId);
-                dbClient.AddParamWithValue("toid", this.ID);
-                dbClient.ExecuteQuery("DELETE FROM messenger_requests WHERE to_id = @toid AND from_id = @fromid LIMIT 1");
-            }
-
-            if (this.Requests.ContainsKey(fromId))
-            {
-                this.Requests.Remove(fromId);
+                this.Habbo.GetSession().SendMessage(new MessengerUpdateFriendsComposerHandler(null, needUpdate));
             }
         }
 
-        public void SendChatMessage(uint userId, string message)
+        public void UserStatusUpdated(uint userId)
         {
-            if (!this.Friends.ContainsKey(userId))
+            MessengerFriend friend;
+            if (this.Friends.TryGetValue(userId, out friend))
             {
-                this.ChatError(6, userId);
+                friend.NeedUpdate = true;
             }
-            else
-            {
-                GameClient gameClient = Skylight.GetGame().GetGameClientManager().GetGameClientById(userId);
-                if (gameClient != null && gameClient.GetHabbo() != null && gameClient.GetHabbo().GetMessenger() != null)
-                {
-                    if (this.Habbo.IsMuted())
-                    {
-                        this.ChatError(4, userId);
-                    }
-                    else
-                    {
-                        if (gameClient.GetHabbo().IsMuted())
-                        {
-                            this.ChatError(3, userId);
-                        }
-
-                        //handle spam
-                        string filteredMessage = TextUtilies.CheckBlacklistedWords(message);
-                        //chatlog
-
-                        ServerMessage Message = BasicUtilies.GetRevisionServerMessage(Skylight.Revision);
-                        Message.Init(r63aOutgoing.MessengerChatMessage);
-                        Message.AppendUInt(this.ID);
-                        Message.AppendString(filteredMessage);
-                        gameClient.SendMessage(Message);
-                    }
-                }
-                else
-                {
-                    this.ChatError(5, userId);
-                }
-            }
-        }
-
-        public void ChatError(int errorId, uint userId)
-        {
-            ServerMessage Message = BasicUtilies.GetRevisionServerMessage(Skylight.Revision);
-            Message.Init(r63aOutgoing.MessengerChatError);
-            Message.AppendInt32(errorId);
-            Message.AppendUInt(userId);
-            this.Habbo.GetSession().SendMessage(Message);
         }
 
         public void UpdateAllFriends(bool updateInstantly)
         {
             foreach (MessengerFriend friend in this.Friends.Values.ToList())
             {
-                if (friend != null)
+                try
                 {
-                    try
+                    GameClient target = Skylight.GetGame().GetGameClientManager().GetGameClientById(friend.ID);
+                    if (target?.GetHabbo()?.GetMessenger() != null)
                     {
-                        GameClient gameClient = Skylight.GetGame().GetGameClientManager().GetGameClientById(friend.ID);
-                        if (gameClient != null && gameClient.GetHabbo() != null && gameClient.GetHabbo().GetMessenger() != null)
+                        target.GetHabbo().GetMessenger().UserStatusUpdated(this.ID);
+                        if (updateInstantly)
                         {
-                            gameClient.GetHabbo().GetMessenger().UserLogIn(this.ID);
-                            if (updateInstantly)
-                            {
-                                gameClient.GetHabbo().GetMessenger().SendUpdates();
-                            }
+                            target.GetHabbo().GetMessenger().SendUpdates();
                         }
                     }
-                    catch
-                    {
+                }
+                catch
+                {
 
-                    }
                 }
             }
         }
 
-        public void UserLogIn(uint userId)
+        public ICollection<MessengerFriend> GetFriends()
         {
-            if (this.Friends.ContainsKey(userId))
-            {
-                this.Friends[userId].NeedUpdate = true;
-            }
+            return this.Friends.Values;
         }
 
-        public void DeleteFriend(uint userId)
+        public ICollection<MessengerCategory> GetCategorys()
         {
-            using (DatabaseClient dbClient = Skylight.GetDatabaseManager().GetClient())
-            {
-                dbClient.AddParamWithValue("toid", userId);
-                dbClient.AddParamWithValue("fromid", this.ID);
-                dbClient.ExecuteQuery("DELETE FROM messenger_friends WHERE (user_one_id = @toid AND user_two_id = @fromid) OR (user_one_id = @fromid AND user_two_id = @toid) LIMIT 1");
-            }
-            this.RemoveFriend(userId);
-            GameClient gameClient = Skylight.GetGame().GetGameClientManager().GetGameClientById(userId);
-            if (gameClient != null && gameClient.GetHabbo() != null && gameClient.GetHabbo().GetMessenger() != null)
-            {
-                gameClient.GetHabbo().GetMessenger().RemoveFriend(this.ID);
-            }
+            return this.FriendCategorys.Values;
         }
 
-        public void RemoveFriend(uint userId)
+        public ICollection<MessengerRequest> GetRequests()
         {
-            if (this.Friends.ContainsKey(userId))
-            {
-                this.Friends.Remove(userId);
-
-                ServerMessage Message = BasicUtilies.GetRevisionServerMessage(Skylight.Revision);
-                Message.Init(r63aOutgoing.MeesengerUpdate);
-                Message.AppendInt32(0);
-                Message.AppendInt32(1);
-                Message.AppendInt32(-1);
-                Message.AppendUInt(userId);
-                this.Habbo.GetSession().SendMessage(Message);
-            }
-        }
-
-        public void DeclineFriendRequest(uint userId)
-        {
-            this.RemoveFriendRequest(userId);
+            return this.FriendRequestsPending.Values;
         }
     }
 }

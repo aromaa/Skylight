@@ -25,7 +25,7 @@ namespace SkylightEmulator.HabboHotel.Rooms
             {
                 for (int j = 0; j < this.Model.MaxY; j++)
                 {
-                    this.Tiles[i, j] = new RoomTile(i, j, this.Model.ModelHeights[i, j], this.Model.TileStates[i, j]);
+                    this.Tiles[i, j] = new RoomTile(room, i, j, this.Model.ModelHeights[i, j], this.Model.TileStates[i, j]);
                 }
             }
         }
@@ -41,11 +41,9 @@ namespace SkylightEmulator.HabboHotel.Rooms
                 }
             }
 
-            foreach(RoomItem item in this.Room.RoomItemManager.Items.Values.ToList())
+            foreach(RoomItem item in this.Room.RoomItemManager.FloorItems.Values)
             {
-                List<AffectedTile> tiles = item.AffectedTiles.Values.ToList();
-                tiles.Add(new AffectedTile(item.X, item.Y, 0));
-
+                HashSet<AffectedTile> tiles = new HashSet<AffectedTile>(item.AffectedTiles) { new AffectedTile(item.X, item.Y, item.Rot) };
                 foreach (AffectedTile tile in tiles)
                 {
                     RoomTile roomtile = this.GetTile(tile.X, tile.Y);
@@ -53,6 +51,18 @@ namespace SkylightEmulator.HabboHotel.Rooms
                     {
                         roomtile.AddItemToTile(item);
                     }
+                }
+            }
+
+            foreach(RoomUnit user in this.Room.RoomUserManager.GetRoomUsers())
+            {
+                if (user.HasNextStep)
+                {
+                    this.GetTile(user.NextStepX, user.NextStepY).UsersOnTile.Add(user.VirtualID, user);
+                }
+                else
+                {
+                    this.GetTile(user.X, user.Y).UsersOnTile.Add(user.VirtualID, user);
                 }
             }
         }
@@ -72,6 +82,16 @@ namespace SkylightEmulator.HabboHotel.Rooms
             {
                 return null;
             }
+        }
+
+        public void UserWalkOff(RoomUnit unit)
+        {
+            this.Model.Triggers?[unit.X, unit.Y]?.UserWalkOff(unit);
+        }
+
+        public void UserWalkOn(RoomUnit unit)
+        {
+            this.Model.Triggers?[unit.X, unit.Y]?.UserWalkOn(unit);
         }
     }
 }

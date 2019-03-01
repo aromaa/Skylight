@@ -18,5 +18,23 @@ namespace SkylightEmulator.Utilies
             this.Y = y;
             this.Rot = rot;
         }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is AffectedTile)
+            {
+                AffectedTile obj_ = (AffectedTile)obj;
+                return obj_.X == this.X && obj_.Y == this.Y && obj_.Rot == this.Rot;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        public override int GetHashCode()
+        {
+            return this.X ^ this.Y ^ this.Rot;
+        }
     }
 }

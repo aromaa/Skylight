@@ -11,13 +11,13 @@ namespace SkylightEmulator.Storage
 			get
 			{
 				MySqlConnectionStringBuilder ConnString = new MySqlConnectionStringBuilder();
-				ConnString.Server = Server.Hostname;
-				ConnString.Port = Server.Port;
-				ConnString.UserID = Server.Username;
-				ConnString.Password = Server.Password;
-				ConnString.Database = Database.DatabaseName;
-				ConnString.MinimumPoolSize = Database.PoolMinSize;
-				ConnString.MaximumPoolSize = Database.PoolMaxSize;
+				ConnString.Server = this.Server.Hostname;
+				ConnString.Port = this.Server.Port;
+				ConnString.UserID = this.Server.Username;
+				ConnString.Password = this.Server.Password;
+				ConnString.Database = this.Database.DatabaseName;
+				ConnString.MinimumPoolSize = this.Database.PoolMinSize;
+				ConnString.MaximumPoolSize = this.Database.PoolMaxSize;
 				ConnString.Pooling = true;
 				return ConnString.ToString();
 			}

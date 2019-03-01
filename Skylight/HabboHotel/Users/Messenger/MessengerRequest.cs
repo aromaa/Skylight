@@ -10,24 +10,24 @@ namespace SkylightEmulator.HabboHotel.Users.Messenger
 {
     public class MessengerRequest
     {
-        public readonly uint ID;
         public readonly uint ToID;
         public readonly uint FromID;
         public readonly string FromUsername;
+        public readonly string FromLook;
 
-        public MessengerRequest(uint id, uint to, uint from)
+        public MessengerRequest(uint toId, uint fromId, string fromUsername, string fromLook)
         {
-            this.ID = id;
-            this.ToID = to;
-            this.FromID = from;
-            this.FromUsername = Skylight.GetGame().GetGameClientManager().GetUsernameByID(this.FromID);
+            this.ToID = toId;
+            this.FromID = fromId;
+            this.FromUsername = fromUsername;
+            this.FromLook = fromLook;
         }
 
         public void Serialize(ServerMessage message)
         {
-            message.AppendUInt(this.ID);
-            message.AppendStringWithBreak(this.FromUsername);
-            message.AppendStringWithBreak(this.FromID.ToString());
+            message.AppendUInt(this.FromID);
+            message.AppendString(this.FromUsername);
+            message.AppendString(this.FromLook);
         }
     }
 }

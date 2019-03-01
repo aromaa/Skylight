@@ -1,4 +1,5 @@
-﻿using SkylightEmulator.Utilies;
+﻿using SkylightEmulator.Collections;
+using SkylightEmulator.Utilies;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,6 +10,7 @@ namespace SkylightEmulator.HabboHotel.Rooms
 {
     public class RoomTile
     {
+        public readonly Room Room;
         public readonly int X;
         public readonly int Y;
         public readonly int ModelZ;
@@ -17,18 +19,19 @@ namespace SkylightEmulator.HabboHotel.Rooms
         public RoomItem HigestRoomItem;
         public ModelItemState ModelItemState;
 
-        private List<RoomItem> ItemsOnTile;
-        public List<RoomUser> UsersOnTile;
+        public ConcurrentListDictionary<uint, Type, RoomItem> ItemsOnTile;
+        public Dictionary<int, RoomUnit> UsersOnTile; //key = virtual Id, value = roomUser
 
-        public RoomTile(int x, int y, int modelZ, ModelTileState modelTileState)
+        public RoomTile(Room room, int x, int y, int modelZ, ModelTileState modelTileState)
         {
+            this.Room = room;
             this.X = x;
             this.Y = y;
             this.ModelZ = modelZ;
             this.ModelTileState = modelTileState;
 
-            this.ItemsOnTile = new List<RoomItem>();
-            this.UsersOnTile = new List<RoomUser>();
+            this.ItemsOnTile = new ConcurrentListDictionary<uint, Type, RoomItem>();
+            this.UsersOnTile = new Dictionary<int, RoomUnit>();
 
             this.ModelItemState = ModelItemState.NONE;
         }
@@ -37,7 +40,7 @@ namespace SkylightEmulator.HabboHotel.Rooms
         {
             get
             {
-                return this.ModelTileState == ModelTileState.HOLE;
+                return this.ModelTileState == ModelTileState.BLOCKED;
             }
         }
 
@@ -53,7 +56,7 @@ namespace SkylightEmulator.HabboHotel.Rooms
         {
             get
             {
-                return this.ModelItemState == ModelItemState.SEAT;
+                return this.ModelItemState == ModelItemState.SEAT || this.ModelTileState == ModelTileState.SEAT;
             }
         }
 
@@ -100,53 +103,102 @@ namespace SkylightEmulator.HabboHotel.Rooms
         {
             get
             {
-                return this.ModelItemState != ModelItemState.LOCKED && !this.IsHole && !this.IsInUse;
+                return this.ModelItemState != ModelItemState.LOCKED && !this.IsHole && !this.IsInUse && this.ItemsOnTile.Get(typeof(RoomItemBlackHole)).Count <= 0;
             }
         }
 
         public double GetZ(bool includeItemHeight)
         {
-            if (this.HigestRoomItem != null)
-            {
-                if (includeItemHeight)
-                {
-                    return this.HigestRoomItem.Z + this.HigestRoomItem.BaseItem.Height;
-                }
-                else
-                {
-                    return this.HigestRoomItem.Z;
-                }
-            }
-            else
-            {
-                return this.ModelZ;
-            }
+            return (includeItemHeight ? this.HigestRoomItem?.ActiveHeight : this.HigestRoomItem?.Z) ?? this.ModelZ;
         }
 
         public void AddItemToTile(RoomItem item)
         {
-            this.ItemsOnTile.Add(item);
-            
-            this.UpdateTile();
+            this.ItemsOnTile.Add(item.ID, item.GetType(), item);
+
+            if (this.HigestRoomItem == null || item.Z >= this.HigestRoomItem.Z) //there isint any higer items or the placed item can be the new higest item
+            {
+                this.UpdateTile();
+            }
         }
 
         public void RemoveItemFromTile(RoomItem item)
         {
-            this.ItemsOnTile.Remove(item);
+            this.ItemsOnTile.Remove(item.ID, item.GetType());
 
-            this.UpdateTile();
+            if (this.HigestRoomItem == item) //if removed item is the higest item we should check stuff
+            {
+                this.UpdateTile();
+            }
+        }
+
+        public RoomItem GetHigestItem(params RoomItem[] ignore)
+        {
+            RoomItem tempHigestItem = null;
+            foreach (RoomItem item in this.ItemsOnTile.Values.OrderByDescending(i => i.Z))
+            {
+                if (!ignore.Contains(item))
+                {
+                    if ((tempHigestItem == null || (tempHigestItem.Z == item.Z && item.ActiveHeight > tempHigestItem.ActiveHeight)))
+                    {
+                        tempHigestItem = item;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+            }
+
+            return tempHigestItem;
         }
 
         public void UpdateTile()
         {
-            if (this.ItemsOnTile.Count > 0)
-            {
-                this.HigestRoomItem = this.ItemsOnTile.OrderByDescending(i => i.Z).First();
-            }
-
+            this.HigestRoomItem = this.GetHigestItem();
             if (this.HigestRoomItem != null)
             {
-                this.ModelItemState = this.HigestRoomItem.BaseItem.InteractionType == "bed" ? ModelItemState.BED : this.HigestRoomItem.BaseItem.IsSeat ? ModelItemState.SEAT : this.HigestRoomItem.BaseItem.Walkable ? ModelItemState.NONE : ModelItemState.LOCKED;
+                if (this.HigestRoomItem is RoomItemGate)
+                {
+                    this.ModelItemState = this.HigestRoomItem.ExtraData == "1" ? ModelItemState.NONE : ModelItemState.LOCKED;
+                }
+                else if (this.HigestRoomItem is RoomItemFreezeGateBlue || this.HigestRoomItem is RoomItemFreezeGateGreen || this.HigestRoomItem is RoomItemFreezeGateRed || this.HigestRoomItem is RoomItemFreezeGateYellow)
+                {
+                    this.ModelItemState = this.Room.RoomFreezeManager.GameStarted ? ModelItemState.LOCKED : ModelItemState.NONE;
+                }
+                else if (this.HigestRoomItem is RoomItemFreezeIceBlock)
+                {
+                    this.ModelItemState = (this.HigestRoomItem.ExtraData == "0" || string.IsNullOrEmpty(this.HigestRoomItem.ExtraData)) ? ModelItemState.LOCKED : ModelItemState.NONE;
+                }
+                else if (this.HigestRoomItem is RoomItemHorseObstacle)
+                {
+                    if (this.HigestRoomItem.Rot == 0 || this.HigestRoomItem.Rot == 2)
+                    {
+                        if ((this.HigestRoomItem.X + 1 == this.X && this.HigestRoomItem.Y == this.Y) || (this.HigestRoomItem.X + 1 == this.X && this.HigestRoomItem.Y + 1 == this.Y))
+                        {
+                            this.ModelItemState = ModelItemState.LOCKED;
+                        }
+                        else
+                        {
+                            this.ModelItemState = ModelItemState.NONE;
+                        }
+                    }
+                    else if (this.HigestRoomItem.Rot == 4)
+                    {
+                        if ((this.HigestRoomItem.X == this.X && this.HigestRoomItem.Y + 1 == this.Y) || (this.HigestRoomItem.X + 1 == this.X && this.HigestRoomItem.Y + 1 == this.Y))
+                        {
+                            this.ModelItemState = ModelItemState.LOCKED;
+                        }
+                        else
+                        {
+                            this.ModelItemState = ModelItemState.NONE;
+                        }
+                    }
+                }
+                else
+                {
+                    this.ModelItemState = this.HigestRoomItem.BaseItem.InteractionType == "bed" ? ModelItemState.BED : this.HigestRoomItem.BaseItem.IsSeat ? ModelItemState.SEAT : this.HigestRoomItem.BaseItem.Walkable ? ModelItemState.NONE : ModelItemState.LOCKED;
+                }
             }
             else
             {
@@ -157,6 +209,7 @@ namespace SkylightEmulator.HabboHotel.Rooms
         public void ResetGamemap()
         {
             this.ItemsOnTile.Clear();
+            this.UsersOnTile.Clear();
             this.HigestRoomItem = null;
 
             this.UpdateTile();

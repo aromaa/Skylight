@@ -10,6 +10,8 @@ namespace SkylightEmulator.HabboHotel.Rooms
     {
         OPEN = 0,
         LOCKED = 1,
-        PASSWORD = 2
+        PASSWORD = 2,
+        INVISIBLE = 3,
+        NOOBS_ONLY = 4,
     }
 }

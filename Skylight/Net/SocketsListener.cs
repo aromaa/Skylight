@@ -1,4 +1,5 @@
 ﻿using SkylightEmulator.Core;
+using SkylightEmulator.Utilies;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,18 +16,29 @@ namespace SkylightEmulator.Net
         private Socket Server;
         private AsyncCallback AcceptCallback;
         private bool Listening = false;
+        private Revision Revision;
+        private Crypto Crypto;
 
-        public SocketsListener(string ip, int port, SocketsManager manager)
+        public SocketsListener(SocketsManager manager, string ip, int port, Revision revision, Crypto crypto)
         {
             this.SocketsManager = manager;
+            this.Revision = revision;
+            this.Crypto = crypto;
 
             this.AcceptCallback = new AsyncCallback(this.AcceptConnection);
             this.Server = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            IPEndPoint bindIP = new IPEndPoint(IPAddress.Parse(ip), port);
-            this.Server.Bind(bindIP);
+            this.Server.NoDelay = true;
+            this.Server.Bind(new IPEndPoint(IPAddress.Parse(ip), port));
             this.Server.Listen(1000);
 
-            Logging.WriteLine("Listening for connections on port: " + port);
+            if (revision == Revision.None)
+            {
+                Logging.WriteLine("Listening for connections on port: " + port);
+            }
+            else
+            {
+                Logging.WriteLine("Listening for connections on port: " + port + " with specified revision: " + revision);
+            }
         }
 
         public void Start()
@@ -51,7 +63,6 @@ namespace SkylightEmulator.Net
                 {
 
                 }
-                Logging.WriteLine("Listener stopped");
 
                 this.Server = null;
                 this.SocketsManager = null;
@@ -69,7 +80,6 @@ namespace SkylightEmulator.Net
                 }
                 catch
                 {
-
                 }
             }
         }
@@ -81,12 +91,13 @@ namespace SkylightEmulator.Net
                 try
                 {
                     Socket socket = ((Socket)ar.AsyncState).EndAccept(ar);
-                    EndPoint ip = socket.RemoteEndPoint;
-                    this.SocketsManager.Connection(socket, ip);
+                    socket.NoDelay = true;
+                    
+                    this.SocketsManager.Connection(socket, socket.RemoteEndPoint, this.Revision, this.Crypto);
                 }
                 catch (Exception ex)
                 {
-                    Logging.WriteLine("Failed to receive connection! " + ex.ToString());
+                    Logging.LogException(ex.ToString());
                 }
                 finally
                 {

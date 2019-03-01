@@ -17,7 +17,8 @@ namespace SkylightEmulator.Communication.Messages.Incoming.r63a.Handshake
             uint itemId = message.PopWiredUInt();
             string extraData = message.PopFixedString();
 
-            Skylight.GetGame().GetCatalogManager().BuyItem(session, pageId, itemId, extraData);
+            Skylight.GetGame().GetCatalogManager().BuyItem(session, pageId, itemId, extraData, session.GetHabbo().GetCommandCache().BuyCommandValue, false);
+            session.GetHabbo().GetCommandCache().BuyCommandValue = 1;
         }
     }
 }

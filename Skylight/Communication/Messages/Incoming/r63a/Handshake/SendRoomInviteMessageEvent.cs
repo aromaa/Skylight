@@ -21,26 +21,64 @@ namespace SkylightEmulator.Communication.Messages.Incoming.r63a.Handshake
                 List<uint> users = new List<uint>();
                 for(int i = 0; i <count; i++)
                 {
-                    users.Add(message.PopWiredUInt());
+                    uint userId = message.PopWiredUInt();
+                    if (userId > 0)
+                    {
+                        users.Add(userId);
+                    }
                 }
 
-                string text = TextUtilies.CheckBlacklistedWords(TextUtilies.FilterString(message.PopFixedString(), false, false));
+                if (users.Count <= 0)
+                {
+                    return;
+                }
 
-                ServerMessage Message = BasicUtilies.GetRevisionServerMessage(Skylight.Revision);
+                string text = TextUtilies.FilterString(message.PopFixedString(), false, false);
+                string filteredMessage = TextUtilies.CheckBlacklistedWords(text);
+
+                ServerMessage Message = BasicUtilies.GetRevisionServerMessage(Revision.RELEASE63_35255_34886_201108111108);
                 Message.Init(r63aOutgoing.MessengerRoomInvite);
                 Message.AppendUInt(session.GetHabbo().ID);
-                Message.AppendStringWithBreak(text);
+                Message.AppendString(filteredMessage);
+
+                List<string> receiverUsernames = new List<string>();
+                List<int> receiverSessionIds = new List<int>();
                 foreach(uint userId in users)
                 {
-                    if (session.GetHabbo().GetMessenger().IsFriend(userId))
+                    if (session.GetHabbo().GetMessenger().IsFriendWith(userId))
                     {
                         GameClient gameClient = Skylight.GetGame().GetGameClientManager().GetGameClientById(userId);
                         if (gameClient != null)
                         {
-                            gameClient.SendMessage(Message);
+                            if (gameClient.GetHabbo() != null)
+                            {
+                                receiverUsernames.Add(gameClient.GetHabbo().Username);
+                                if (gameClient.GetHabbo().GetMessenger() != null && gameClient.GetHabbo().GetMessenger().IsFriendWith(session.GetHabbo().ID))
+                                {
+                                    gameClient.SendMessage(Message);
+                                }
+                            }
+                            else
+                            {
+                                receiverUsernames.Add(Skylight.GetGame().GetGameClientManager().GetUsernameByID(userId));
+                            }
+
+                            receiverSessionIds.Add(gameClient.SessionID);
+                        }
+                        else
+                        {
+                            receiverUsernames.Add(Skylight.GetGame().GetGameClientManager().GetUsernameByID(userId));
+                            receiverSessionIds.Add(-1);
                         }
                     }
+                    else
+                    {
+                        receiverUsernames.Add(Skylight.GetGame().GetGameClientManager().GetUsernameByID(userId));
+                        receiverSessionIds.Add(-1);
+                    }
                 }
+
+                Skylight.GetGame().GetChatlogManager().LogRoomInvite(session, users, receiverUsernames, receiverSessionIds, text);
             }
         }
     }

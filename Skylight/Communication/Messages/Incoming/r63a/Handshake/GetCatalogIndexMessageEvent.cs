@@ -1,6 +1,7 @@
 ﻿using SkylightEmulator.Core;
 using SkylightEmulator.HabboHotel.GameClients;
 using SkylightEmulator.Messages;
+using SkylightEmulator.Utilies;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,7 +14,10 @@ namespace SkylightEmulator.Communication.Messages.Incoming.r63a.Handshake
     {
         public void Handle(GameClient session, ClientMessage message)
         {
-            session.SendMessage(Skylight.GetGame().GetCatalogManager().GetIndexes(session.GetHabbo().Rank));
+            if (session != null && session.GetHabbo() != null)
+            {
+                session.SendMessage(BasicUtilies.GetRevisionPacketManager(session.Revision).GetOutgoing(OutgoingPacketsEnum.CatalogIndexes).Handle(new ValueHolder("Rank", session.GetHabbo().Rank)));
+            }
         }
     }
 }

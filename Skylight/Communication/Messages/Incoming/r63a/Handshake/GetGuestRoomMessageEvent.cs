@@ -20,15 +20,15 @@ namespace SkylightEmulator.Communication.Messages.Incoming.r63a.Handshake
             bool enterRoom = message.PopWiredBoolean();
             bool forward = message.PopWiredBoolean();
 
-            RoomData roomData = Skylight.GetGame().GetRoomManager().GetAndLoadRoomData(roomId);
+            RoomData roomData = Skylight.GetGame().GetRoomManager().TryGetAndLoadRoomData(roomId);
             if (roomData != null)
             {
-                ServerMessage roomData_ = BasicUtilies.GetRevisionServerMessage(Skylight.Revision);
+                ServerMessage roomData_ = BasicUtilies.GetRevisionServerMessage(Revision.RELEASE63_35255_34886_201108111108);
                 roomData_.Init(r63aOutgoing.RoomData);
                 roomData_.AppendBoolean(enterRoom); //entered room
                 roomData.Serialize(roomData_, false);
                 roomData_.AppendBoolean(forward); //forward
-                roomData_.AppendBoolean(false); //is staff pick
+                roomData_.AppendBoolean(roomData.IsStaffPick); //is staff pick
                 session.SendMessage(roomData_);
             }
         }
